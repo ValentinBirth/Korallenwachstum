@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://47nyoher1s44"]
+
+[node name="Label" type="Label"]
+anchors_preset = -1
+offset_left = 489.0
+offset_top = 112.0
+offset_right = 634.0
+offset_bottom = 135.0
+text = "Korallenwachstum"
+horizontal_alignment = 1
+vertical_alignment = 1
