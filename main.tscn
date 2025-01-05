@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=4 uid="uid://cyov4tow1mp7u"]
+
+[ext_resource type="Script" path="res://main.gd" id="1_1s04c"]
+[ext_resource type="Script" path="res://DiffusionLogic.gd" id="2_gopkc"]
+[ext_resource type="TileSet" uid="uid://ci3sklw6b4i6d" path="res://tileset.tres" id="3_lqoxm"]
+
+[node name="Main" type="Node2D"]
+position = Vector2(583, 280)
+script = ExtResource("1_1s04c")
+diffusion_logic_script = ExtResource("2_gopkc")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(0, 48)
+
+[node name="layer_holder" type="Node2D" parent="."]
+position = Vector2(-581, -280)
+
+[node name="WaterLayer" type="TileMapLayer" parent="layer_holder"]
+tile_map_data = PackedByteArray("AAAWABIAAQABAAAAAAAqABgAAQABAAAAAAApAA0AAQABAAAAAAAdAB0AAQABAAAAAAA3ABwAAQABAAAAAAA6AA4AAQABAAAAAAALAAcAAQABAAAAAAANABkAAQABAAAAAAA=")
+tile_set = ExtResource("3_lqoxm")
