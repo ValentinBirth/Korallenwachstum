@@ -31,7 +31,7 @@ func _process(delta: float):
 	time_since_last_step += delta
 	if time_since_last_step >= step_time:
 		# Diffusion aktualisieren
-		diffusion_logic.update_diffusion()
+		#diffusion_logic.update_diffusion()
 
 		# Darstellung aktualisieren
 		update_layers()
@@ -47,7 +47,7 @@ func update_layers():
 		for x in range(GRID_WIDTH):
 			# Setze die Tiles je nach Wasser- und Salzstand
 			var tile_vector = get_tile_id_for_value(water_grid[y][x], salt_grid[y][x])
-			water_layer.set_cell(Vector2i(x,y),0,tile_vector)
+			water_layer.set_cell(Vector2i(x,y),1,tile_vector)
 
 # Bestimme das passende Tile aus dem TileSet basierend auf den Werten von Wasser und Salz
 func get_tile_id_for_value(water_value: float, salt_value: float) -> Vector2i:
@@ -57,8 +57,8 @@ func get_tile_id_for_value(water_value: float, salt_value: float) -> Vector2i:
 	var water_level: int
 	water_level = int(clamp(water_value * 5, 1, 5))
 	if water_level == 0:
-		return Vector2i(1,0)
+		return Vector2i(0,1)
 	if salt_level >=0:
-		return Vector2i(0,salt_level)
+		return Vector2i(salt_level,0)
 	else:
-		return Vector2i(1,water_level)
+		return Vector2i(water_level,1)
