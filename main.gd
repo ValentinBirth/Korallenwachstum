@@ -3,13 +3,13 @@ extends Node2D
 class_name MainSimulation
 
 # Importiere das DiffusionLogic-Script
-@export var diffusion_logic_script: Script
+@export var water_simulation_script: Script
 
 # TileMap-Referenzen
 @onready var water_layer: TileMapLayer = $layer_holder/WaterLayer
 
-# Diffusionslogik-Instanz
-var diffusion_logic
+# Wassersimulations-Instanz
+var water_simulation
 
 # Konstanten für das Grid
 const GRID_WIDTH: int = 50
@@ -21,17 +21,18 @@ var time_since_last_step: float = 0.0
 
 func _ready():
 	# Lade die Diffusionslogik dynamisch
-	diffusion_logic = diffusion_logic_script.new(GRID_WIDTH, GRID_HEIGHT)
-	diffusion_logic.randomize_grids()
+	water_simulation = water_simulation_script.new(GRID_WIDTH, GRID_HEIGHT)
+	#water_simulation.randomize_grids()
 
 	# Initiale Darstellung
 	update_layers()
 
 func _process(delta: float):
+	handle_water_placement()
 	time_since_last_step += delta
 	if time_since_last_step >= step_time:
 		# Diffusion aktualisieren
-		#diffusion_logic.update_diffusion()
+		water_simulation.update_diffusion()
 
 		# Darstellung aktualisieren
 		update_layers()
@@ -40,8 +41,8 @@ func _process(delta: float):
 		time_since_last_step = 0.0
 
 func update_layers():
-	var water_grid = diffusion_logic.get_water_grid()
-	var salt_grid = diffusion_logic.get_salt_grid()
+	var water_grid = water_simulation.get_water_grid()
+	var salt_grid = water_simulation.get_salt_grid()
 
 	for y in range(GRID_HEIGHT):
 		for x in range(GRID_WIDTH):
@@ -51,14 +52,28 @@ func update_layers():
 
 # Bestimme das passende Tile aus dem TileSet basierend auf den Werten von Wasser und Salz
 func get_tile_id_for_value(water_value: float, salt_value: float) -> Vector2i:
-	# Beispiel für einfache Wertezuordnung#
+
 	var salt_level: int
-	salt_level = int(clamp(salt_value * 5, 1, 5))
+	salt_level = int(clamp(salt_value * 5, 0, 4))
 	var water_level: int
-	water_level = int(clamp(water_value * 5, 1, 5))
+	water_level = int(clamp(water_value * 5, 0, 4))
 	if water_level == 0:
 		return Vector2i(0,1)
-	if salt_level >=0:
+	if salt_level >0:
 		return Vector2i(salt_level,0)
 	else:
 		return Vector2i(water_level,1)
+		
+func world_to_tile(world_pos: Vector2) -> Vector2i:
+		return water_layer.local_to_map(world_pos)
+		
+func is_within_bounds(tile_coords: Vector2i) -> bool:
+	return tile_coords.x >= 0 and tile_coords.x < GRID_HEIGHT-1 and \
+		tile_coords.y >= 0 and tile_coords.y < GRID_WIDTH-1	
+		
+func handle_water_placement():
+	if Input.is_action_just_pressed("left_click"):
+		var tile_coords = world_to_tile(get_global_mouse_position())
+		if is_within_bounds(tile_coords):
+			print("detected input at:" + str(tile_coords))
+			water_simulation.set_water(tile_coords,1)

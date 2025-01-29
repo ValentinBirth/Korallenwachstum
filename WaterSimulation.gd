@@ -1,6 +1,6 @@
 extends Object
 
-class_name DiffusionLogic
+class_name WaterSimulation
 
 var GRID_WIDTH: int
 var GRID_HEIGHT: int
@@ -99,3 +99,6 @@ func get_water_grid() -> Array:
 
 func get_salt_grid() -> Array:
 	return salt_grid
+	
+func set_water(tile_coords: Vector2i,water_level: float):
+	grid[tile_coords.y][tile_coords.x] = water_level;
