@@ -1,14 +1,14 @@
 [gd_scene load_steps=5 format=3 uid="uid://cyov4tow1mp7u"]
 
 [ext_resource type="Script" path="res://main.gd" id="1_1s04c"]
-[ext_resource type="Script" path="res://DiffusionLogic.gd" id="2_gopkc"]
+[ext_resource type="Script" path="res://WaterSimulation.gd" id="2_rmgnp"]
 [ext_resource type="Script" path="res://cam.gd" id="3_ftohf"]
 [ext_resource type="TileSet" uid="uid://ci3sklw6b4i6d" path="res://tileset.tres" id="3_lqoxm"]
 
 [node name="Main" type="Node2D"]
 position = Vector2(583, 280)
 script = ExtResource("1_1s04c")
-diffusion_logic_script = ExtResource("2_gopkc")
+water_simulation_script = ExtResource("2_rmgnp")
 
 [node name="layer_holder" type="Node2D" parent="."]
 position = Vector2(-581, -280)
