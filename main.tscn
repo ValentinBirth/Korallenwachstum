@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://main.gd" id="1_1s04c"]
 [ext_resource type="Script" path="res://WaterSimulation.gd" id="2_rmgnp"]
 [ext_resource type="Script" path="res://cam.gd" id="3_ftohf"]
-[ext_resource type="TileSet" uid="uid://ci3sklw6b4i6d" path="res://tileset.tres" id="3_lqoxm"]
+[ext_resource type="TileSet" uid="uid://bjruixuugkur2" path="res://watertiles_v3.tres" id="3_oso6d"]
 
 [node name="Main" type="Node2D"]
 position = Vector2(583, 280)
@@ -14,7 +14,7 @@ water_simulation_script = ExtResource("2_rmgnp")
 position = Vector2(-581, -280)
 
 [node name="WaterLayer" type="TileMapLayer" parent="layer_holder"]
-tile_set = ExtResource("3_lqoxm")
+tile_set = ExtResource("3_oso6d")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 script = ExtResource("3_ftohf")
