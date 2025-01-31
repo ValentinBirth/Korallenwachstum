@@ -19,13 +19,14 @@ const GRID_HEIGHT: int = 30
 var step_time: float = 0.05
 var time_since_last_step: float = 0.0
 
-func _ready():
-	# Lade die Diffusionslogik dynamisch
-	water_simulation = water_simulation_script.new(GRID_WIDTH, GRID_HEIGHT)
-	#water_simulation.randomize_grids()
+var border_color = Color(0.0, 0.0, 0.0)
+var grid_updated = false
 
-	# Initiale Darstellung
+func _ready():
+	water_simulation = water_simulation_script.new(GRID_WIDTH, GRID_HEIGHT)
 	update_layers()
+	mark_grid_as_updated()
+	update_border_tiles()
 
 func _process(delta: float):
 	handle_water_placement()
@@ -36,9 +37,30 @@ func _process(delta: float):
 
 		# Darstellung aktualisieren
 		update_layers()
-
+		
+		if grid_updated:
+			update_border_tiles()  # This will trigger the redraw of the outer border
+			grid_updated = false  # Reset the flag after drawin
 		# Zeitsteuerung zurücksetzen
 		time_since_last_step = 0.0
+		
+func update_border_tiles():
+	# Set the border tiles on the grid
+	var border_tile_id = Vector2i(4,0)
+	for x in range(GRID_WIDTH):
+		# Top row
+		water_layer.set_cell(Vector2i(x, -1), 1, border_tile_id)
+		# Bottom row
+		water_layer.set_cell(Vector2i(x, GRID_HEIGHT),1 , border_tile_id)
+	
+	for y in range(GRID_HEIGHT+2):
+		# Left column
+		water_layer.set_cell(Vector2i(-1, y-1),1 , border_tile_id)
+		# Right column
+		water_layer.set_cell(Vector2i(GRID_WIDTH, y-1),1 , border_tile_id)
+	
+func mark_grid_as_updated():
+	grid_updated = true
 
 func update_layers():
 	var water_grid = water_simulation.get_water_grid()
