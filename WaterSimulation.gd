@@ -42,57 +42,72 @@ func randomize_grids():
 		for x in range(GRID_WIDTH):
 			grid[y][x] = randf() if randf() < 0.1 else 0.0
 			salt_grid[y][x] = grid[y][x] * randf()
-
-func update_diffusion():
+			
+func update_simulation():
 	for y in range(GRID_HEIGHT):
 		for x in range(GRID_WIDTH):
-			var current_water = grid[y][x]
-			for offset in [
-				Vector2i(-1, 0), Vector2i(1, 0), 
-				Vector2i(0, -1), Vector2i(0, 1)
-			]:
-				var nx = (x + offset.x + GRID_WIDTH) % GRID_WIDTH
-				var ny = (y + offset.y + GRID_HEIGHT) % GRID_HEIGHT
+			next_grid[y][x] = grid[y][x]
+			next_salt_grid[y][x] = salt_grid[y][x]
+			
+	for y in range(GRID_HEIGHT - 1, -1, -1):
+		for x in range(GRID_WIDTH):
+			if grid[y][x] > 0:
+				move_water(x, y)
+				
+	for y in range(GRID_HEIGHT):
+		for x in range(GRID_WIDTH):
+			if salt_grid[y][x] > 0:
+				diffuse_salt(x, y)
+	grid = next_grid.duplicate(true)
+	salt_grid = next_salt_grid.duplicate(true)
+	
+func move_water(x: int, y: int):
+	var water_amount = grid[y][x]
+	if water_amount <= 0:
+		return
+	# Wasser fließt nach unten
+	if y + 1 < GRID_HEIGHT and grid[y + 1][x] < 1.0:
+		var flow = min(water_amount, 1.0 - grid[y + 1][x])
+		next_grid[y][x] -= flow
+		next_grid[y + 1][x] += flow
+	# Wasser fließt seitwärts
+	elif y + 1 < GRID_HEIGHT:
+		var move_left = x > 0 and grid[y][x - 1] < 1.0
+		var move_right = x < GRID_WIDTH - 1 and grid[y][x + 1] < 1.0
+		if move_left and move_right:
+			var flow = water_amount / 2.0
+			next_grid[y][x] -= flow
+			next_grid[y][x - 1] += flow / 2
+			next_grid[y][x + 1] += flow / 2
+		elif move_left:
+			var flow = min(water_amount, 1.0 - grid[y][x - 1])
+			next_grid[y][x] -= flow
+			next_grid[y][x - 1] += flow
+		elif move_right:
+			var flow = min(water_amount, 1.0 - grid[y][x + 1])
+			next_grid[y][x] -= flow
+			next_grid[y][x + 1] += flow
+			
+func diffuse_salt(x: int, y: int):
+	var salt_amount = salt_grid[y][x]
+	if salt_amount <= 0:
+		return
+		
+	var neighbors = []
+	if x > 0:
+		neighbors.append(Vector2(x - 1, y))
+	if x < GRID_WIDTH - 1:
+		neighbors.append(Vector2(x + 1, y))
+	if y > 0:
+		neighbors.append(Vector2(x, y - 1))
+	if y < GRID_HEIGHT - 1:
+		neighbors.append(Vector2(x, y + 1))
 
-				var neighbor_water = grid[ny][nx]
-				var water_diff = (current_water - neighbor_water) * DIFFUSION_RATE
-				water_diff = clamp(water_diff, 0.0, current_water)
-
-				next_grid[y][x] -= water_diff
-				next_grid[ny][nx] += water_diff
-
-			var current_salt = salt_grid[y][x]
-			for offset in [
-				Vector2i(-1, 0), Vector2i(1, 0), 
-				Vector2i(0, -1), Vector2i(0, 1)
-			]:
-				var nx = (x + offset.x + GRID_WIDTH) % GRID_WIDTH
-				var ny = (y + offset.y + GRID_HEIGHT) % GRID_HEIGHT
-
-				var neighbor_salt = salt_grid[ny][nx]
-				var neighbor_water = grid[ny][nx]
-
-				if neighbor_water > 0:
-					var salt_diff = (current_salt - neighbor_salt) * DIFFUSION_RATE
-					salt_diff = clamp(salt_diff, 0.0, current_salt)
-
-					next_salt_grid[y][x] -= salt_diff
-					next_salt_grid[ny][nx] += salt_diff
-
-			next_salt_grid[y][x] = min(next_salt_grid[y][x], next_grid[y][x])
-
-	# Temporäre Variablen zum Tausch
-	var temp_grid = grid
-	var temp_salt_grid = salt_grid
-
-	# Tausche die Arrays
-	grid = next_grid
-	salt_grid = next_salt_grid
-
-	# Setze die "next_" Arrays auf die alten "grid" Variablen
-	next_grid = temp_grid
-	next_salt_grid = temp_salt_grid
-
+	var diffusion_amount = salt_amount * DIFFUSION_RATE / neighbors.size()
+	
+	next_salt_grid[y][x] -= diffusion_amount * neighbors.size()
+	for neighbor in neighbors:
+		next_salt_grid[neighbor.y][neighbor.x] += diffusion_amount
 
 func get_water_grid() -> Array:
 	return grid
@@ -102,3 +117,6 @@ func get_salt_grid() -> Array:
 	
 func set_water(tile_coords: Vector2i,water_level: float):
 	grid[tile_coords.y][tile_coords.x] = water_level;
+
+func set_salt(tile_coords: Vector2i,salt_level: float):
+	salt_grid[tile_coords.y][tile_coords.x] = salt_level;

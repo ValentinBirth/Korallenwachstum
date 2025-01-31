@@ -16,7 +16,7 @@ const GRID_WIDTH: int = 50
 const GRID_HEIGHT: int = 30
 
 # Zeitsteuerung
-var step_time: float = 0.1
+var step_time: float = 0.05
 var time_since_last_step: float = 0.0
 
 func _ready():
@@ -32,7 +32,7 @@ func _process(delta: float):
 	time_since_last_step += delta
 	if time_since_last_step >= step_time:
 		# Diffusion aktualisieren
-		water_simulation.update_diffusion()
+		water_simulation.update_simulation()
 
 		# Darstellung aktualisieren
 		update_layers()
@@ -60,20 +60,26 @@ func get_tile_id_for_value(water_value: float, salt_value: float) -> Vector2i:
 	if water_level == 0:
 		return Vector2i(0,1)
 	if salt_level >0:
-		return Vector2i(salt_level,0)
+		return Vector2i(1,water_level+salt_level*4)
 	else:
-		return Vector2i(water_level,1)
+		return Vector2i(1,water_level)
 		
 func world_to_tile(world_pos: Vector2) -> Vector2i:
 		return water_layer.local_to_map(world_pos)
 		
 func is_within_bounds(tile_coords: Vector2i) -> bool:
-	return tile_coords.x >= 0 and tile_coords.x < GRID_HEIGHT-1 and \
-		tile_coords.y >= 0 and tile_coords.y < GRID_WIDTH-1	
+	return tile_coords.x >= 0 and tile_coords.x < GRID_WIDTH-1 and \
+		tile_coords.y >= 0 and tile_coords.y < GRID_HEIGHT-1	
 		
 func handle_water_placement():
 	if Input.is_action_just_pressed("left_click"):
 		var tile_coords = world_to_tile(get_global_mouse_position())
 		if is_within_bounds(tile_coords):
 			print("detected input at:" + str(tile_coords))
+			water_simulation.set_water(tile_coords,1)
+	if Input.is_action_just_pressed("right_click"):
+		var tile_coords = world_to_tile(get_global_mouse_position())
+		if is_within_bounds(tile_coords):
+			print("detected input at:" + str(tile_coords))
+			water_simulation.set_salt(tile_coords,1)
 			water_simulation.set_water(tile_coords,1)
