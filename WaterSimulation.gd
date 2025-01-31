@@ -44,22 +44,35 @@ func randomize_grids():
 			salt_grid[y][x] = grid[y][x] * randf()
 			
 func update_simulation():
+	var updates = []
+	 # Collect cells with water for processing
+	for y in range(GRID_HEIGHT):
+		for x in range(GRID_WIDTH):
+			if grid[y][x] > 0:
+				updates.append(Vector2i(x, y))
+				
+	# Copy current grid state			
 	for y in range(GRID_HEIGHT):
 		for x in range(GRID_WIDTH):
 			next_grid[y][x] = grid[y][x]
 			next_salt_grid[y][x] = salt_grid[y][x]
 			
-	for y in range(GRID_HEIGHT - 1, -1, -1):
-		for x in range(GRID_WIDTH):
-			if grid[y][x] > 0:
-				move_water(x, y)
+	# Process water movement
+	for cell in updates:
+		move_water(cell.x, cell.y)
+
+	# Process salt diffusion only where water exists
+	for cell in updates:
+		if salt_grid[cell.y][cell.x] > 0:
+			diffuse_salt(cell.x, cell.y)
 				
-	for y in range(GRID_HEIGHT):
-		for x in range(GRID_WIDTH):
-			if salt_grid[y][x] > 0:
-				diffuse_salt(x, y)
-	grid = next_grid.duplicate(true)
-	salt_grid = next_salt_grid.duplicate(true)
+				
+	# Swap grids
+	var temp = grid
+	grid = next_grid
+	next_grid = temp
+
+	next_salt_grid = temp
 	
 func move_water(x: int, y: int):
 	var water_amount = grid[y][x]
@@ -108,14 +121,12 @@ func diffuse_salt(x: int, y: int):
 		return
 		
 	var neighbors = []
-	if x > 0 and grid[y][x - 1] > 0:
-		neighbors.append(Vector2(x - 1, y))
-	if x < GRID_WIDTH - 1 and grid[y][x + 1] > 0:
-		neighbors.append(Vector2(x + 1, y))
-	if y > 0 and grid[y - 1][x] > 0:
-		neighbors.append(Vector2(x, y - 1))
-	if y < GRID_HEIGHT - 1 and grid[y + 1][x] > 0:
-		neighbors.append(Vector2(x, y + 1))
+	var neighbor_offsets = [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]
+	for offset in neighbor_offsets:
+		var nx = x + offset.x
+		var ny = y + offset.y
+		if nx >= 0 and nx < GRID_WIDTH and ny >= 0 and ny < GRID_HEIGHT and grid[ny][nx] > 0:
+			neighbors.append(Vector2(nx, ny))
 		
 	if neighbors.size() == 0:
 		return
