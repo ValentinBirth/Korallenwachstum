@@ -72,6 +72,8 @@ func update_simulation():
 	grid = next_grid
 	next_grid = temp
 
+	temp = salt_grid
+	salt_grid = next_salt_grid
 	next_salt_grid = temp
 	
 func move_water(x: int, y: int):
