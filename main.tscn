@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://main.gd" id="1_1s04c"]
 [ext_resource type="Script" path="res://WaterSimulation.gd" id="2_rmgnp"]
 [ext_resource type="Script" path="res://cam.gd" id="3_ftohf"]
-[ext_resource type="TileSet" uid="uid://bjruixuugkur2" path="res://watertiles_v3.tres" id="3_oso6d"]
+[ext_resource type="TileSet" uid="uid://bgarpvoo0ldga" path="res://watertiles_v3.tres" id="3_oso6d"]
 
 [node name="Main" type="Node2D"]
 position = Vector2(583, 280)

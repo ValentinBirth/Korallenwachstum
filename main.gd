@@ -16,7 +16,7 @@ const GRID_WIDTH: int = 50
 const GRID_HEIGHT: int = 30
 
 # Zeitsteuerung
-var step_time: float = 0.05
+var step_time: float = 0.01
 var time_since_last_step: float = 0.0
 
 func _ready():

@@ -65,28 +65,42 @@ func move_water(x: int, y: int):
 	var water_amount = grid[y][x]
 	if water_amount <= 0:
 		return
-	# Wasser fließt nach unten
+
+	# Move down if possible
 	if y + 1 < GRID_HEIGHT and grid[y + 1][x] < 1.0:
 		var flow = min(water_amount, 1.0 - grid[y + 1][x])
+		var salt_flow = salt_grid[y][x] * (flow / water_amount)
 		next_grid[y][x] -= flow
 		next_grid[y + 1][x] += flow
-	# Wasser fließt seitwärts
+		next_salt_grid[y][x] -= salt_flow
+		next_salt_grid[y + 1][x] += salt_flow
+	# Move sideways if blocked
 	elif y + 1 < GRID_HEIGHT:
 		var move_left = x > 0 and grid[y][x - 1] < 1.0
 		var move_right = x < GRID_WIDTH - 1 and grid[y][x + 1] < 1.0
 		if move_left and move_right:
 			var flow = water_amount / 2.0
+			var salt_flow = salt_grid[y][x] * (flow / water_amount)
 			next_grid[y][x] -= flow
 			next_grid[y][x - 1] += flow / 2
 			next_grid[y][x + 1] += flow / 2
+			next_salt_grid[y][x] -= salt_flow
+			next_salt_grid[y][x - 1] += salt_flow / 2
+			next_salt_grid[y][x + 1] += salt_flow / 2
 		elif move_left:
 			var flow = min(water_amount, 1.0 - grid[y][x - 1])
+			var salt_flow = salt_grid[y][x] * (flow / water_amount)
 			next_grid[y][x] -= flow
 			next_grid[y][x - 1] += flow
+			next_salt_grid[y][x] -= salt_flow
+			next_salt_grid[y][x - 1] += salt_flow
 		elif move_right:
 			var flow = min(water_amount, 1.0 - grid[y][x + 1])
+			var salt_flow = salt_grid[y][x] * (flow / water_amount)
 			next_grid[y][x] -= flow
 			next_grid[y][x + 1] += flow
+			next_salt_grid[y][x] -= salt_flow
+			next_salt_grid[y][x + 1] += salt_flow
 			
 func diffuse_salt(x: int, y: int):
 	var salt_amount = salt_grid[y][x]
@@ -94,14 +108,17 @@ func diffuse_salt(x: int, y: int):
 		return
 		
 	var neighbors = []
-	if x > 0:
+	if x > 0 and grid[y][x - 1] > 0:
 		neighbors.append(Vector2(x - 1, y))
-	if x < GRID_WIDTH - 1:
+	if x < GRID_WIDTH - 1 and grid[y][x + 1] > 0:
 		neighbors.append(Vector2(x + 1, y))
-	if y > 0:
+	if y > 0 and grid[y - 1][x] > 0:
 		neighbors.append(Vector2(x, y - 1))
-	if y < GRID_HEIGHT - 1:
+	if y < GRID_HEIGHT - 1 and grid[y + 1][x] > 0:
 		neighbors.append(Vector2(x, y + 1))
+		
+	if neighbors.size() == 0:
+		return
 
 	var diffusion_amount = salt_amount * DIFFUSION_RATE / neighbors.size()
 	
