@@ -76,47 +76,82 @@ func update_simulation():
 	salt_grid = next_salt_grid
 	next_salt_grid = temp
 	
+# Helper function to handle water and salt movement
+func apply_flow(from_x: int, from_y: int, to_x: int, to_y: int, water_amount: float, total_space: float, salt_amount: float) -> void:
+	# Only move if there's available space and a non-zero flow
+	var flow = min(water_amount, total_space)
+	if flow <= 0:  # Don't flow if there's no space or no water to move
+		return
+		
+	var salt_flow = salt_amount * (flow / water_amount) if water_amount > 0 else 0.0
+	
+	# Apply flow to the grids
+	next_grid[from_y][from_x] -= flow
+	next_grid[to_y][to_x] += flow
+	next_salt_grid[from_y][from_x] -= salt_flow
+	next_salt_grid[to_y][to_x] += salt_flow
+
+# Main function for moving water
 func move_water(x: int, y: int):
 	var water_amount = grid[y][x]
 	if water_amount <= 0:
 		return
 
-	# Move down if possible
-	if y + 1 < GRID_HEIGHT and grid[y + 1][x] < 1.0:
-		var flow = min(water_amount, 1.0 - grid[y + 1][x])
-		var salt_flow = salt_grid[y][x] * (flow / water_amount)
-		next_grid[y][x] -= flow
-		next_grid[y + 1][x] += flow
-		next_salt_grid[y][x] -= salt_flow
-		next_salt_grid[y + 1][x] += salt_flow
-	# Move sideways if blocked
-	elif y + 1 < GRID_HEIGHT:
-		var move_left = x > 0 and grid[y][x - 1] < 1.0
-		var move_right = x < GRID_WIDTH - 1 and grid[y][x + 1] < 1.0
-		if move_left and move_right:
-			var flow = water_amount / 2.0
-			var salt_flow = salt_grid[y][x] * (flow / water_amount)
-			next_grid[y][x] -= flow
-			next_grid[y][x - 1] += flow / 2
-			next_grid[y][x + 1] += flow / 2
-			next_salt_grid[y][x] -= salt_flow
-			next_salt_grid[y][x - 1] += salt_flow / 2
-			next_salt_grid[y][x + 1] += salt_flow / 2
-		elif move_left:
-			var flow = min(water_amount, 1.0 - grid[y][x - 1])
-			var salt_flow = salt_grid[y][x] * (flow / water_amount)
-			next_grid[y][x] -= flow
-			next_grid[y][x - 1] += flow
-			next_salt_grid[y][x] -= salt_flow
-			next_salt_grid[y][x - 1] += salt_flow
-		elif move_right:
-			var flow = min(water_amount, 1.0 - grid[y][x + 1])
-			var salt_flow = salt_grid[y][x] * (flow / water_amount)
-			next_grid[y][x] -= flow
-			next_grid[y][x + 1] += flow
-			next_salt_grid[y][x] -= salt_flow
-			next_salt_grid[y][x + 1] += salt_flow
-			
+	# Try to move down if possible
+	if y + 1 < GRID_HEIGHT and grid[y + 1][x] < 1.0:  # Only move down if there is space
+		var flow_amount = min(water_amount, 1.0 - grid[y + 1][x])  # Flow amount depends on available space
+		if flow_amount > 0:  # Only move if there is actual space to flow
+			apply_flow(x, y, x, y + 1, water_amount, 1.0 - grid[y + 1][x], salt_grid[y][x])
+			return  # Exit early after downward movement
+
+	# If downwards movement is blocked, try moving sideways
+	var move_left = x > 0 and grid[y][x - 1] < 1.0
+	var move_right = x < GRID_WIDTH - 1 and grid[y][x + 1] < 1.0
+
+	if move_left and move_right:
+		# Calculate total water in the current, left, and right cells
+		var total_water = water_amount + grid[y][x - 1] + grid[y][x + 1]
+		var target_level = total_water / 3.0  # Even out the water level between the 3 cells
+		
+		# Calculate the water flow for each direction
+		var flow_left = max(0, target_level - grid[y][x - 1])
+		var flow_right = max(0, target_level - grid[y][x + 1])
+		var flow_current = water_amount - flow_left - flow_right
+
+		# Move water to left and right cells
+		apply_flow(x, y, x - 1, y, flow_left, 1.0 - grid[y][x - 1], salt_grid[y][x] * (flow_left / water_amount))
+		apply_flow(x, y, x + 1, y, flow_right, 1.0 - grid[y][x + 1], salt_grid[y][x] * (flow_right / water_amount))
+		
+		# Keep the remaining water in the current cell
+		apply_flow(x, y, x, y, flow_current, 1.0 - grid[y][x], salt_grid[y][x] * (flow_current / water_amount))
+
+	elif move_left:
+		# Calculate total water in the current and left cells
+		var total_water = water_amount + grid[y][x - 1]
+		var target_level = total_water / 2.0  # Even out the water level between the current and left cell
+		
+		# Calculate the water flow for the left direction
+		var flow_left = max(0, target_level - grid[y][x - 1])
+		var flow_current = water_amount - flow_left
+
+		# Move water to the left cell and keep the remaining water in the current cell
+		apply_flow(x, y, x - 1, y, flow_left, 1.0 - grid[y][x - 1], salt_grid[y][x] * (flow_left / water_amount))
+		apply_flow(x, y, x, y, flow_current, 1.0 - grid[y][x], salt_grid[y][x] * (flow_current / water_amount))
+
+	elif move_right:
+		# Calculate total water in the current and right cells
+		var total_water = water_amount + grid[y][x + 1]
+		var target_level = total_water / 2.0  # Even out the water level between the current and right cell
+		
+		# Calculate the water flow for the right direction
+		var flow_right = max(0, target_level - grid[y][x + 1])
+		var flow_current = water_amount - flow_right
+
+		# Move water to the right cell and keep the remaining water in the current cell
+		apply_flow(x, y, x + 1, y, flow_right, 1.0 - grid[y][x + 1], salt_grid[y][x] * (flow_right / water_amount))
+		apply_flow(x, y, x, y, flow_current, 1.0 - grid[y][x], salt_grid[y][x] * (flow_current / water_amount))
+
+												
 func diffuse_salt(x: int, y: int):
 	var salt_amount = salt_grid[y][x]
 	if salt_amount <= 0:

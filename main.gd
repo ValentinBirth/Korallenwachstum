@@ -16,7 +16,7 @@ const GRID_WIDTH: int = 50
 const GRID_HEIGHT: int = 30
 
 # Zeitsteuerung
-var step_time: float = 0.01
+var step_time: float = 0.05
 var time_since_last_step: float = 0.0
 
 func _ready():
@@ -75,11 +75,9 @@ func handle_water_placement():
 	if Input.is_action_just_pressed("left_click"):
 		var tile_coords = world_to_tile(get_global_mouse_position())
 		if is_within_bounds(tile_coords):
-			print("detected input at:" + str(tile_coords))
 			water_simulation.set_water(tile_coords,1)
 	if Input.is_action_just_pressed("right_click"):
 		var tile_coords = world_to_tile(get_global_mouse_position())
 		if is_within_bounds(tile_coords):
-			print("detected input at:" + str(tile_coords))
 			water_simulation.set_salt(tile_coords,1)
 			water_simulation.set_water(tile_coords,1)
