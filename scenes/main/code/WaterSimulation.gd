@@ -159,8 +159,8 @@ func move_water(pos: Vector2i):
 				return  # Exit early after downward movement
 	
 	# If downward movement is blocked, try moving sideways
-	var move_left = pos.x > 0 and !is_solid(pos_left)
-	var move_right = !is_solid(pos_right)
+	var move_left = pos.x > 0 and !is_solid(pos_left-Vector2i(-1, 0))
+	var move_right = !is_solid(pos_right-Vector2i(1, 0))
 	
 	# Get water levels in neighboring cells
 	var left_water = 0.0
