@@ -16,11 +16,29 @@ var time_since_last_step: float = 0.0
 @export var water_amount: float = 1.0
 @export var salt_amount: float = 1.0
 
+# Source and drain parameters
+@export var source_water_rate: float = 1
+@export var source_salt_concentration: float = 0.0
+@export var drain_rate: float = 0.5
+
+# Hardcoded source and drain positions
+@export var source_positions: Array[Vector2i] = [
+	Vector2i(14,7)
+]
+
+@export var drain_positions: Array[Vector2i] = [
+	Vector2i(-64,19)
+]
+
 func _ready():
 	# Initialize the water simulation
 	water_simulation = water_simulation_script.new()
 	water_simulation.set_terrain_layer(terrain_layer)
 	water_simulation.debug_mode = debug_mode
+	
+	# Set up sources and drains
+	water_simulation.setup_sources(source_positions, source_water_rate, source_salt_concentration)
+	water_simulation.setup_drains(drain_positions, drain_rate)
 	
 	# Initial rendering update
 	update_layers()
