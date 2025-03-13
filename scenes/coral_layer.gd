@@ -1,113 +1,106 @@
 extends TileMapLayer
 
-@export var growth_rate: float = 0.05  # Growth interval in seconds
-const CoralParticle = preload("res://scenes/CoralParticle.tscn")
-var coral_tiles: Array  
-var coral_source_id: int  
-var coral_atlas_coord: Vector2i  
+@export var particle_count: int = 100
+@export var growth_rate: float = 0.05
+
+var coral_source_id: int
+var coral_atlas_coord = Vector2i(23, 5)  # Coral tile atlas coords
+#var particle_atlas_coord = Vector2i(0, 0)  # Particle tile atlas coords
+var particle_atlas_coord = Vector2i(16, 10)
+
+var coral_tiles = []  # Track coral growth
+var particles = []  # Track active particles
+
 
 func _ready():
-	find_existing_coral()
-	start_growth_timer()
-	spawn_particles(50)  # Spawn 50 floating particles
+	setup_coral()
+	spawn_particles()
 
-# Detect existing coral tiles
-func find_existing_coral():
-	coral_tiles.clear()
-	var found_tile = false  
 
+# Setup initial coral tiles
+func setup_coral():
+	coral_tiles = []
+
+	# Scan all tiles and detect the coral's source_id
 	for pos in get_used_cells():
 		var source_id = get_cell_source_id(pos)
-		var atlas_coord = get_cell_atlas_coords(pos)
-
-		if source_id != -1:  
-			if not found_tile:  
-				coral_source_id = source_id
-				coral_atlas_coord = atlas_coord
-				found_tile = true  
+		if source_id != -1:
+			if coral_tiles.is_empty():
+				coral_source_id = source_id  # Save the first coral tile's source_id
 			coral_tiles.append(pos)
 
-	if not found_tile:
-		print("Error: No coral tile found on the map!")
+	if coral_tiles.is_empty():
+		print("No starting coral found!")
 
-# Timer to trigger coral growth
-func start_growth_timer():
+
+# Spawn wandering particles randomly around coral
+func spawn_particles():
+	for i in range(particle_count):
+		var particle_pos = Vector2i(
+			randi_range(-11, 100),  # Wider range to spread particles
+			randi_range(93, 113)
+		)
+		particles.append(particle_pos)
+		set_cell(particle_pos, coral_source_id, particle_atlas_coord)
+
+	# Timer to keep particles moving
 	var timer = Timer.new()
 	timer.wait_time = growth_rate
-	timer.timeout.connect(grow_coral)
+	timer.timeout.connect(move_particles)
 	add_child(timer)
 	timer.start()
 
-# Grow coral using branching bias
-func grow_coral():
-	if coral_tiles.is_empty():
-		return  
 
-	var random_coral = coral_tiles.pick_random()  
-	var growth_position = find_growth_position(random_coral)
+# Move particles randomly 
+func move_particles():
+	var remaining_particles = []
 
-	if growth_position != Vector2i(-1, -1):  
-		set_cell(growth_position, coral_source_id, coral_atlas_coord)  
-		coral_tiles.append(growth_position)  
-		print("Placing coral at:", growth_position)
+	for particle_pos in particles:
+		# Random movement directions
+		var directions = [
+			Vector2i(0, -1), Vector2i(1, 0),
+			Vector2i(-1, 0), Vector2i(0, 1)
+		]
+		directions.shuffle()
 
-# Find a less crowded growth position with branching bias
-func find_growth_position(origin: Vector2i) -> Vector2i:
-	var directions = [
-		Vector2i(0, -1),  # Up (priority)
-		Vector2i(1, 0),    # Right
-		Vector2i(-1, 0),   # Left
-		Vector2i(0, 1)     # Down
-	]
+		# Check if the particle touches existing coral — not other particles
+		var stuck = false
+		for offset in directions:
+			var neighbor_pos = particle_pos + offset
+			if neighbor_pos in coral_tiles:
+				set_cell(particle_pos, coral_source_id, coral_atlas_coord)
+				coral_tiles.append(particle_pos)
+				stuck = true
+				break
 
-	directions.shuffle()  # Shuffle for variety
+		# If particle didn’t stick, try moving it
+		if not stuck:
+			var new_pos = particle_pos + directions.pick_random()
 
-	var best_position = Vector2i(-1, -1)
-	var lowest_neighbors = 999  
+			# Check if new position is within the permitted area
+			if (
+				new_pos.x >= -10 and new_pos.x <= 100
+				and new_pos.y >= 93 and new_pos.y <= 113
+				and get_cell_source_id(new_pos) == -1
+			):
+				erase_cell(particle_pos)
+				set_cell(new_pos, coral_source_id, particle_atlas_coord)
+				remaining_particles.append(new_pos)
+			else:
+				remaining_particles.append(particle_pos)
 
-	for dir in directions:
-		var new_pos = origin + dir
+	particles = remaining_particles
 
-		# Ensure new position is within Y bounds and empty
-		if 123 <= new_pos.y and new_pos.y <= 142 and get_cell_source_id(new_pos) == -1:
-			var neighbor_count = count_adjacent_coral(new_pos)
+	# Respawn particles if needed
+	if particles.is_empty():
+		print("Coral growth continues!")
+		spawn_particles()
 
-			# Pick the position with the fewest neighbors (more space to branch)
-			if neighbor_count < lowest_neighbors:
-				lowest_neighbors = neighbor_count
-				best_position = new_pos
 
-	# Return the best candidate for growth
-	return best_position
 
-# Count how many coral tiles are adjacent to a given position
-func count_adjacent_coral(pos: Vector2i) -> int:
-	var neighbors = [
-		Vector2i(1, 0), Vector2i(-1, 0),
-		Vector2i(0, 1), Vector2i(0, -1)
-	]
-	var count = 0
 
-	for offset in neighbors:
-		if (pos + offset) in coral_tiles:
-			count += 1
-
-	return count
-
-func spawn_particles(amount):
-	if coral_tiles.is_empty():
-		print("No coral tiles to spawn particles on!")
-		return
-	
-	for i in range(amount):
-		# Pick a random coral tile to spawn near
-		var coral_pos = coral_tiles.pick_random()
-		var world_pos = map_to_local(coral_pos)  # Convert tile position to world coordinates
-		
-		# Slight random offset for natural feel
-		var offset = Vector2(randf_range(-5, 5), randf_range(-5, 5))
-		
-		# Create and position particle
-		var particle = CoralParticle.instantiate()
-		particle.position = world_pos + offset
-		add_child(particle)
+# Optional cleanup — stop when coral is big enough
+func _process(_delta):
+	if coral_tiles.size() > 1000:  # Limit max coral size
+		particles.clear()
+		print("Coral growth complete!")
