@@ -7,12 +7,14 @@ class_name MainSimulation
 @onready var water_layer: TileMapLayer = $layer_holder/WaterLayer
 @onready var terrain_layer: TileMapLayer = $layer_holder/TerrainLayer
 
+@onready var Salt_slider: VSlider = $"Salt Regulator"
+
 var water_simulation
 var step_time: float = 0.05
 var time_since_last_step: float = 0.0
 
 # Configuration parameters
-@export var debug_mode: bool = false
+@export var debug_mode: bool = true
 @export var water_amount: float = 1.0
 @export var salt_amount: float = 1.0
 
@@ -23,11 +25,11 @@ var time_since_last_step: float = 0.0
 
 # Hardcoded source and drain positions
 @export var source_positions: Array[Vector2i] = [
-	Vector2i(14,7)
+	Vector2i(14,1)
 ]
 
 @export var drain_positions: Array[Vector2i] = [
-	Vector2i(-64,19)
+	Vector2i(-64,1)
 ]
 
 func _ready():
@@ -39,6 +41,7 @@ func _ready():
 	# Set up sources and drains
 	water_simulation.setup_sources(source_positions, source_water_rate, source_salt_concentration)
 	water_simulation.setup_drains(drain_positions, drain_rate)
+	water_simulation.fill_pool()
 	
 	# Initial rendering update
 	update_layers()
@@ -46,6 +49,8 @@ func _ready():
 func _process(delta: float):
 	# Handle input separately from simulation
 	handle_water_placement()
+	
+	update_sources()
 	
 	# Update physics at fixed timestep
 	time_since_last_step += delta
@@ -96,3 +101,8 @@ func handle_water_placement():
 		var tile_coords = world_to_tile(get_global_mouse_position())
 		water_simulation.set_salt(tile_coords, salt_amount)
 		water_simulation.set_water(tile_coords, water_amount)
+		
+func update_sources():
+	var sources = water_simulation.get_source_positions()
+	for source in sources:
+		source.salt_concentration = Salt_slider.value
