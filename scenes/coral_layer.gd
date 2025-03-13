@@ -1,7 +1,7 @@
 extends TileMapLayer
 
 @export var growth_rate: float = 0.05  # Growth interval in seconds
-
+const CoralParticle = preload("res://scenes/CoralParticle.tscn")
 var coral_tiles: Array  
 var coral_source_id: int  
 var coral_atlas_coord: Vector2i  
@@ -9,6 +9,7 @@ var coral_atlas_coord: Vector2i
 func _ready():
 	find_existing_coral()
 	start_growth_timer()
+	spawn_particles(50)  # Spawn 50 floating particles
 
 # Detect existing coral tiles
 func find_existing_coral():
@@ -92,3 +93,21 @@ func count_adjacent_coral(pos: Vector2i) -> int:
 			count += 1
 
 	return count
+
+func spawn_particles(amount):
+	if coral_tiles.is_empty():
+		print("No coral tiles to spawn particles on!")
+		return
+	
+	for i in range(amount):
+		# Pick a random coral tile to spawn near
+		var coral_pos = coral_tiles.pick_random()
+		var world_pos = map_to_local(coral_pos)  # Convert tile position to world coordinates
+		
+		# Slight random offset for natural feel
+		var offset = Vector2(randf_range(-5, 5), randf_range(-5, 5))
+		
+		# Create and position particle
+		var particle = CoralParticle.instantiate()
+		particle.position = world_pos + offset
+		add_child(particle)
