@@ -10,8 +10,8 @@ class_name MainSimulation
 @onready var Salt_slider: VSlider = $"Salt Regulator"
 
 var water_simulation: WaterSimulation
-var step_time: float = 0.05
-var time_since_last_step: float = 0.0
+var step_time: float = 0.01
+var time_since_last_step: float = 0.05
 
 # Configuration parameters
 @export var debug_mode: bool = true

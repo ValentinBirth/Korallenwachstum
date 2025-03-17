@@ -4,11 +4,9 @@ class_name WaterSimulation
 
 # Configuration parameters that can be adjusted
 @export var MAX_WATER: float = 1.0
-@export var DIFFUSION_RATE: float = 0.25
-@export var SURFACE_TENSION: float = 0.05
-@export var SALT_DIFFUSION_RATE: float = 0.1
+@export var SALT_DIFFUSION_RATE: float = 0.25
 @export var VELOCITY_TRANSFER: float = 0.8
-@export var MAX_VELOCITY: float = 4.0
+@export var MAX_VELOCITY: float = 6.0
 @export var GRAVITY_FORCE: float = 9.8
 @export var step_time = 0.05
 
@@ -31,7 +29,6 @@ class WaterCell:
 	var water_amount: float = 0.0
 	var salt_amount: float = 0.0
 	var velocity: Vector2 = Vector2.ZERO  # Add velocity vector
-	var inertia: float = 0.85  # Controls how much velocity is retained
 	
 	func _init(w: float = 0.0, s: float = 0.0):
 		water_amount = w
@@ -41,19 +38,10 @@ class WaterCell:
 	func get_salt_concentration() -> float:
 		# Calculate salt concentration, avoiding division by zero
 		return salt_amount / water_amount if water_amount > 0.001 else 0.0
-		
-	func apply_viscosity_to_velocity() -> void:
-		# Slow down velocity based on viscosity
-		var viscosity_factor = calculate_viscosity()
-		velocity *= (1.0 / viscosity_factor) * inertia
 
 	func has_water() -> bool:
 		# Check if the cell has a meaningful amount of water
 		return water_amount > 0.001
-	
-	func calculate_viscosity() -> float:
-		# Higher salt concentration = higher viscosity
-		return 1.0 + get_salt_concentration() * 0.5  # 50% more viscous when fully saturated
 
 # Source class to generate water at a specific location
 class WaterSource:
@@ -81,7 +69,6 @@ func set_water_layer(layer: TileMapLayer):
 func set_terrain_layer(layer: TileMapLayer):
 	terrain_layer = layer
 
-# Add this new function to WaterSimulation class
 func update_velocities():
 	var active_positions = active_cells.keys()
 	for pos in active_positions:
@@ -114,12 +101,12 @@ func update_velocities():
 		if is_solid(pos_right) and cell.velocity.x > 0:
 			cell.velocity.x *= -0.5  # Bounce with energy loss
 		
-		# Apply viscosity effects to velocity
-		cell.apply_viscosity_to_velocity()
-		
 		# Clamp velocity to maximum
 		if cell.velocity.length() > MAX_VELOCITY:
 			cell.velocity = cell.velocity.normalized() * MAX_VELOCITY
+			
+		if cell.velocity.length() < 0.05:
+			cell.velocity = Vector2.ZERO  # Stop unnecessary tiny movements
 
 # Function to set up hardcoded sources
 func setup_sources(source_positions: Array, source_water_rate: float, source_salt_concentration: float):
@@ -321,7 +308,7 @@ func try_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, velocity: Vect
 	var velocity_magnitude = velocity.length()
 	
 	# Calculate flow amount based on velocity and available space
-	var flow_proportion = min(0.3 + velocity_magnitude * 0.1, 0.8)  # Higher velocity causes more flow
+	var flow_proportion = min(0.15 + velocity_magnitude * 0.05, 1)  # Higher velocity causes more flow
 	var flow_amount = min(from_cell.water_amount * flow_proportion, available_space)
 	
 	if flow_amount <= 0.001:
@@ -333,15 +320,13 @@ func try_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, velocity: Vect
 		
 	apply_flow_with_velocity(from_pos, to_pos, flow_amount, salt_amount, velocity)
 	return true
+	
 # Main function for moving water
 func move_water(pos: Vector2i):
 	if !cells.has(pos) or !cells[pos].has_water():
 		return
 		
 	var cell = cells[pos]
-	var water_amount = cell.water_amount
-	var salt_amount = cell.salt_amount
-	var viscosity = cell.calculate_viscosity()
 	
 	# Calculate positions based on velocity direction
 	var velocity_direction = cell.velocity.normalized()
@@ -357,58 +342,9 @@ func move_water(pos: Vector2i):
 	var secondary_pos = pos + secondary_direction
 	if !is_solid(secondary_pos) and try_flow_with_velocity(pos, secondary_pos, cell.velocity * 0.7):
 		return
-	
-	# Fallback to standard downward flow if movement by velocity failed
-	var pos_below = pos + Vector2i(0, 1)
-	if !is_solid(pos_below):
-		var below_water = 0.0
-		if cells.has(pos_below):
-			below_water = cells[pos_below].water_amount
-			
-		if below_water < MAX_WATER:
-			# Calculate flow amount with viscosity and surface tension
-			var available_space = MAX_WATER - below_water
-			var flow_amount = min(water_amount, available_space) * (1.0 - SURFACE_TENSION) / viscosity
-			
-			if flow_amount > 0.001:
-				apply_flow_with_velocity(pos, pos_below, flow_amount, salt_amount * (flow_amount / water_amount), Vector2(0, 1))
-				return
-	
-	# If downward movement is blocked, try sideway spreading as before
-	var pos_left = pos + Vector2i(-1, 0)
-	var pos_right = pos + Vector2i(1, 0)
-	
-	var move_left = !is_solid(pos_left)
-	var move_right = !is_solid(pos_right)
-	
-	# Get water levels in neighboring cells
-	var left_water = 0.0
-	var right_water = 0.0
-	
-	if cells.has(pos_left):
-		left_water = cells[pos_left].water_amount
-		
-	if cells.has(pos_right):
-		right_water = cells[pos_right].water_amount
-		
-	move_left = move_left and left_water < MAX_WATER
-	move_right = move_right and right_water < MAX_WATER
-	
-	if move_left and move_right:
-		# Distribute water evenly between the three cells with velocity
-		var positions = [pos, pos_left, pos_right]
-		distribute_water_evenly_with_velocity(positions, viscosity)
-	elif move_left:
-		# Distribute water evenly between current and left cells with velocity
-		var positions = [pos, pos_left]
-		distribute_water_evenly_with_velocity(positions, viscosity)
-	elif move_right:
-		# Distribute water evenly between current and right cells with velocity
-		var positions = [pos, pos_right]
-		distribute_water_evenly_with_velocity(positions, viscosity)
 
-# Modified distribute_water_evenly function to account for velocity
-func distribute_water_evenly_with_velocity(positions: Array, viscosity: float) -> void:
+
+func distribute_water_evenly_with_velocity(positions: Array) -> void:
 	# Calculate current total water across all positions
 	var total_water = 0.0
 	var current_levels = {}
@@ -429,7 +365,7 @@ func distribute_water_evenly_with_velocity(positions: Array, viscosity: float) -
 	# Calculate target water level (even distribution)
 	var target_level = total_water / positions.size()
 	
-	# Apply flows to reach target level, accounting for surface tension, viscosity and velocity
+	# Apply flows to reach target level, accounting velocity
 	for pos in positions:
 		var current_level = current_levels[pos]
 		var difference = target_level - current_level
@@ -445,9 +381,6 @@ func distribute_water_evenly_with_velocity(positions: Array, viscosity: float) -
 					var donor_level = current_levels[donor_pos]
 					if donor_level > target_level:
 						var flow_amount = min(donor_level - target_level, target_level - current_level)
-						
-						# Adjust for surface tension and viscosity
-						flow_amount *= (1.0 - SURFACE_TENSION) / viscosity
 						
 						if flow_amount > 0.001 and cells.has(donor_pos) and cells[donor_pos].has_water():
 							var donor_cell = cells[donor_pos]
