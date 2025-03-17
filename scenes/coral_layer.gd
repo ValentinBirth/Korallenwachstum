@@ -5,6 +5,7 @@ extends TileMapLayer
 
 var coral_source_id: int
 var coral_atlas_coord = Vector2i(23, 5)  # Coral tile atlas coords
+#var particle_atlas_coord = Vector2i(0, 0)  # Particle tile atlas coords
 var particle_atlas_coord = Vector2i(16, 10)
 
 var coral_tiles = []  # Track coral growth
@@ -65,17 +66,23 @@ func _ready():
 	add_child(move_timer)
 	move_timer.start()
 
-# Move particles randomly
+# Move particles randomly (with radial growth and branching)
 func move_particles():
 	print("Timer triggered - moving particles...")
 	var remaining_particles = []
 
+	# Set the origin point for radial growth (the first coral tile)
+	var coral_origin = coral_tiles[0]
+
+	# Radial movement: particles will spread out from the origin
 	for particle_pos in particles:
 		print("Moving particle at: ", particle_pos)  # Ausgabe, um Positionen der Partikel zu prüfen
-		# Random movement directions
+		# Determine the direction of growth (radially outwards)
 		var directions = [
 			Vector2i(0, -1), Vector2i(1, 0),
-			Vector2i(-1, 0), Vector2i(0, 1)
+			Vector2i(-1, 0), Vector2i(0, 1),
+			Vector2i(1, 1), Vector2i(1, -1),
+			Vector2i(-1, 1), Vector2i(-1, -1)
 		]
 		directions.shuffle()
 
@@ -84,20 +91,22 @@ func move_particles():
 		for offset in directions:
 			var neighbor_pos = particle_pos + offset
 			if neighbor_pos in coral_tiles:
-				set_cell(particle_pos, coral_source_id, coral_atlas_coord)
-				coral_tiles.append(particle_pos)
-				stuck = true
-				break
+				# If particle touches coral, it sticks and adds a new growth point
+				if get_cell_source_id(neighbor_pos) != -1:  # Check if the neighbor has coral
+					set_cell(particle_pos, coral_source_id, coral_atlas_coord)
+					coral_tiles.append(particle_pos)
+					stuck = true
+					break
 
-		# If particle didn’t stick, try moving it
+		# If particle didn’t stick, try moving it to an empty spot near coral
 		if not stuck:
 			var new_pos = particle_pos + directions.pick_random()
 
-			# Check if new position is within the permitted area
+			# Check if new position is within the permitted area and no particle exists there
 			if (
 				new_pos.x >= -10 and new_pos.x <= 100
 				and new_pos.y >= 93 and new_pos.y <= 113
-				and get_cell_source_id(new_pos) == -1
+				and get_cell_source_id(new_pos) == -1  # Make sure it's an empty tile
 			):
 				erase_cell(particle_pos)
 				set_cell(new_pos, coral_source_id, particle_atlas_coord)
@@ -115,6 +124,6 @@ func move_particles():
 
 # Optional cleanup — stop when coral is big enough
 func _process(_delta):
-	if coral_tiles.size() > 1000:  # Limit max coral size
+	if coral_tiles.size() > 100:  # Limit max coral size
 		particles.clear()
 		print("Coral growth complete!")
