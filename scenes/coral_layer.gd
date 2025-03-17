@@ -64,6 +64,7 @@ func move_particles():
 	var remaining_particles = []
 
 	for particle_pos in particles:
+		print("Moving particle at: ", particle_pos)  # Ausgabe, um Positionen der Partikel zu prüfen
 		# Random movement directions
 		var directions = [
 			Vector2i(0, -1), Vector2i(1, 0),
