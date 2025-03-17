@@ -8,13 +8,7 @@ var coral_atlas_coord = Vector2i(23, 5)  # Coral tile atlas coords
 var particle_atlas_coord = Vector2i(16, 10)
 
 var coral_tiles = []  # Track coral growth
-var particles = []  # Track active particles
-
-
-func _ready():
-	setup_coral()
-	spawn_particles()
-
+var particles = []  # Track active particles 
 
 # Setup initial coral tiles
 func setup_coral():
@@ -49,14 +43,27 @@ func spawn_particles():
 		else:
 			print("Invalid position for particle at: ", particle_pos)
 
-	# Timer to keep particles moving
-	var timer = Timer.new()
-	timer.wait_time = growth_rate
-	timer.one_shot = false  # Ensure the timer repeats
-	timer.timeout.connect(move_particles)
-	add_child(timer)
-	timer.start()
+# Respawn particles periodically to simulate continuous growth
+var growth_timer = Timer.new()
 
+func _ready():
+	setup_coral()
+	spawn_particles()
+
+	# Timer for continuous coral growth
+	growth_timer.wait_time = 5  # For example, every 5 seconds new particles are created
+	growth_timer.one_shot = false
+	growth_timer.timeout.connect(spawn_particles)  # Trigger spawning of new particles
+	add_child(growth_timer)
+	growth_timer.start()
+
+	# Timer for moving particles
+	var move_timer = Timer.new()
+	move_timer.wait_time = growth_rate
+	move_timer.one_shot = false
+	move_timer.timeout.connect(move_particles)  # Trigger the movement of particles
+	add_child(move_timer)
+	move_timer.start()
 
 # Move particles randomly
 func move_particles():
