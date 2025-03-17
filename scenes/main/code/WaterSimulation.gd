@@ -12,6 +12,20 @@ class_name WaterSimulation
 @export var GRAVITY_FORCE: float = 9.8
 @export var step_time = 0.05
 
+var terrain_layer: TileMapLayer = null
+var water_layer: TileMapLayer = null
+
+# Dictionary to store water cells
+var cells = {}  # Dictionary of Vector2i -> WaterCell
+
+# Active cells tracking using a dictionary as a set for O(1) lookups
+var active_cells = {}
+var debug_mode: bool = false
+
+# Arrays to store sources and drains
+var sources: Array[WaterSource] = []
+var drains: Array[WaterDrain] = []
+
 # Class for managing water and salt in a single cell
 class WaterCell:
 	var water_amount: float = 0.0
@@ -61,19 +75,11 @@ class WaterDrain:
 		position = pos
 		drain_rate = rate
 
-# Reference to the terrain layer
-var terrain_layer: TileMapLayer = null
-
-# Dictionary to store water cells
-var cells = {}  # Dictionary of Vector2i -> WaterCell
-
-# Active cells tracking using a dictionary as a set for O(1) lookups
-var active_cells = {}
-var debug_mode: bool = false
-
-# Arrays to store sources and drains
-var sources: Array[WaterSource] = []
-var drains: Array[WaterDrain] = []
+func set_water_layer(layer: TileMapLayer):
+	water_layer = layer
+	
+func set_terrain_layer(layer: TileMapLayer):
+	terrain_layer = layer
 
 # Add this new function to WaterSimulation class
 func update_velocities():
@@ -115,10 +121,6 @@ func update_velocities():
 		if cell.velocity.length() > MAX_VELOCITY:
 			cell.velocity = cell.velocity.normalized() * MAX_VELOCITY
 
-# Function to set the terrain layer (so we can use it for collision checks)
-func set_terrain_layer(layer: TileMapLayer):
-	terrain_layer = layer
-
 # Function to set up hardcoded sources
 func setup_sources(source_positions: Array, source_water_rate: float, source_salt_concentration: float):
 	sources.clear()
@@ -140,7 +142,7 @@ func fill_pool():
 		while y_level >=0:
 			var pos = Vector2i(x,y_level)
 			if !is_solid(pos):
-				set_water(pos,1)
+				set_water(pos,1,0)
 			y_level -= 1
 	return
 
@@ -148,47 +150,28 @@ func fill_pool():
 func is_solid(pos: Vector2i) -> bool:
 	if terrain_layer == null:
 		return false
-	return terrain_layer.get_cell_source_id(pos) != -1  # Check if a tile exists
+	var world_pos = water_layer.to_global(pos)
+	var terrain_pos = terrain_layer.to_local(world_pos)
+	return terrain_layer.get_cell_source_id(terrain_pos) != -1  # Check if a tile exists
 
-# Getter for water grid (compatibility with existing code)
+# Getter for water grid
 func get_water_grid() -> Dictionary:
-	var water_grid = {}
-	for pos in cells:
-		water_grid[pos] = cells[pos].water_amount
-	return water_grid
-
-# Getter for salt grid (compatibility with existing code)
-func get_salt_grid() -> Dictionary:
-	var salt_grid = {}
-	for pos in cells:
-		salt_grid[pos] = cells[pos].salt_amount
-	return salt_grid
+	return cells
 
 # Setter for water at a specific position
-func set_water(pos: Vector2i, amount: float):
-	if amount <= 0:
+func set_water(pos: Vector2i, water_ammount: float, salt_ammount: float):
+	if water_ammount <= 0:
 		return
 		
 	# Initialize cell if it doesn't exist
 	if !cells.has(pos):
 		cells[pos] = WaterCell.new()
 	
-	cells[pos].water_amount = amount
+	cells[pos].water_amount = water_ammount
+	cells[pos].salt_amount = salt_ammount
 	
 	# Add to active cells
 	active_cells[pos] = true
-
-# Setter for salt at a specific position
-func set_salt(pos: Vector2i, amount: float):
-	if amount <= 0:
-		return
-		
-	# Initialize cell if it doesn't exist
-	if !cells.has(pos):
-		cells[pos] = WaterCell.new()
-	
-	cells[pos].salt_amount = amount
-
 # Get all sources
 func get_source_positions() -> Array:
 	return sources
