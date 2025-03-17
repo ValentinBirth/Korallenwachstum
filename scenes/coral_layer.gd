@@ -5,7 +5,6 @@ extends TileMapLayer
 
 var coral_source_id: int
 var coral_atlas_coord = Vector2i(23, 5)  # Coral tile atlas coords
-#var particle_atlas_coord = Vector2i(0, 0)  # Particle tile atlas coords
 var particle_atlas_coord = Vector2i(16, 10)
 
 var coral_tiles = []  # Track coral growth
@@ -19,7 +18,7 @@ func _ready():
 
 # Setup initial coral tiles
 func setup_coral():
-	coral_tiles = []
+	coral_tiles.clear()
 
 	# Scan all tiles and detect the coral's source_id
 	for pos in get_used_cells():
@@ -35,24 +34,33 @@ func setup_coral():
 
 # Spawn wandering particles randomly around coral
 func spawn_particles():
+	print("Spawning particles...")
 	for i in range(particle_count):
 		var particle_pos = Vector2i(
-			randi_range(-11, 100),  # Wider range to spread particles
-			randi_range(93, 113)
+			randi_range(-11, 100),  # Random x position
+			randi_range(93, 113)    # Random y position
 		)
+		print("Particle created at: ", particle_pos)  # Ausgabe zur Überprüfung der Position
 		particles.append(particle_pos)
-		set_cell(particle_pos, coral_source_id, particle_atlas_coord)
+
+		# Check if the position is within the valid tilemap range
+		if particle_pos.x >= -10 and particle_pos.x <= 100 and particle_pos.y >= 93 and particle_pos.y <= 113:
+			set_cell(particle_pos, coral_source_id, particle_atlas_coord)
+		else:
+			print("Invalid position for particle at: ", particle_pos)
 
 	# Timer to keep particles moving
 	var timer = Timer.new()
 	timer.wait_time = growth_rate
+	timer.one_shot = false  # Ensure the timer repeats
 	timer.timeout.connect(move_particles)
 	add_child(timer)
 	timer.start()
 
 
-# Move particles randomly 
+# Move particles randomly
 func move_particles():
+	print("Timer triggered - moving particles...")
 	var remaining_particles = []
 
 	for particle_pos in particles:
@@ -95,8 +103,6 @@ func move_particles():
 	if particles.is_empty():
 		print("Coral growth continues!")
 		spawn_particles()
-
-
 
 
 # Optional cleanup — stop when coral is big enough
