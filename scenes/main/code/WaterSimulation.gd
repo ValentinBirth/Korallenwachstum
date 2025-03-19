@@ -121,7 +121,7 @@ func setup_drains(drain_positions: Array, drain_rate: float):
 		drains.append(WaterDrain.new(pos, drain_rate))
 
 # Function to fill the terraint with water once
-func fill_pool():
+func fill_pool(salt_amount):
 	var min_x = -64
 	var max_x = 14
 	for x in range(min_x,max_x):
@@ -129,10 +129,12 @@ func fill_pool():
 		while y_level >=0:
 			var pos = Vector2i(x,y_level)
 			if !is_solid(pos):
-				set_water(pos,1,0)
+				set_water(pos,1,salt_amount)
 			y_level -= 1
 	return
-
+func clear_pool():
+	cells.clear()
+	active_cells.clear()
 # Function to check if a cell is solid (based on terrain layer)
 func is_solid(pos: Vector2i) -> bool:
 	if terrain_layer == null:
