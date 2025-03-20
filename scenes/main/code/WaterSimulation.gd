@@ -4,33 +4,14 @@ class_name WaterSimulation
 
 # Configuration parameters that can be adjusted
 @export var MAX_WATER: float = 1.0
-@export var DIFFUSION_RATE: float = 0.25
-@export var SURFACE_TENSION: float = 0.05
-@export var SALT_DIFFUSION_RATE: float = 0.1
+@export var SALT_DIFFUSION_RATE: float = 0.25
+@export var VELOCITY_TRANSFER: float = 0.8
+@export var MAX_VELOCITY: float = 6.0
+@export var GRAVITY_FORCE: float = 9.8
+@export var step_time = 0.05
 
-# Class for managing water and salt in a single cell
-class WaterCell:
-	var water_amount: float = 0.0
-	var salt_amount: float = 0.0
-	
-	func _init(w: float = 0.0, s: float = 0.0):
-		water_amount = w
-		salt_amount = s
-	
-	func get_salt_concentration() -> float:
-		# Calculate salt concentration, avoiding division by zero
-		return salt_amount / water_amount if water_amount > 0.001 else 0.0
-	
-	func has_water() -> bool:
-		# Check if the cell has a meaningful amount of water
-		return water_amount > 0.001
-	
-	func calculate_viscosity() -> float:
-		# Higher salt concentration = higher viscosity
-		return 1.0 + get_salt_concentration() * 0.5  # 50% more viscous when fully saturated
-
-# Reference to the terrain layer
 var terrain_layer: TileMapLayer = null
+var water_layer: TileMapLayer = null
 
 # Dictionary to store water cells
 var cells = {}  # Dictionary of Vector2i -> WaterCell
@@ -39,83 +20,245 @@ var cells = {}  # Dictionary of Vector2i -> WaterCell
 var active_cells = {}
 var debug_mode: bool = false
 
-# Function to set the terrain layer (so we can use it for collision checks)
+# Arrays to store sources and drains
+var sources: Array[WaterSource] = []
+var drains: Array[WaterDrain] = []
+
+# Class for managing water and salt in a single cell
+class WaterCell:
+	var water_amount: float = 0.0
+	var salt_amount: float = 0.0
+	var velocity: Vector2 = Vector2.ZERO  # Add velocity vector
+	
+	func _init(w: float = 0.0, s: float = 0.0):
+		water_amount = w
+		salt_amount = s
+		velocity = Vector2.ZERO
+	
+	func get_salt_concentration() -> float:
+		# Calculate salt concentration, avoiding division by zero
+		return salt_amount / water_amount if water_amount > 0.001 else 0.0
+
+	func has_water() -> bool:
+		# Check if the cell has a meaningful amount of water
+		return water_amount > 0.001
+
+# Source class to generate water at a specific location
+class WaterSource:
+	var position: Vector2i
+	var water_rate: float      # Amount of water to generate per update
+	var salt_concentration: float  # Salt concentration in the generated water
+	
+	func _init(pos: Vector2i, water_amount: float = 0.1, salt_conc: float = 0.0):
+		position = pos
+		water_rate = water_amount
+		salt_concentration = salt_conc
+
+# Drain class to remove water at a specific location
+class WaterDrain:
+	var position: Vector2i
+	var drain_rate: float      # Amount of water to drain per update
+	
+	func _init(pos: Vector2i, rate: float = 0.1):
+		position = pos
+		drain_rate = rate
+
+func set_water_layer(layer: TileMapLayer):
+	water_layer = layer
+	
 func set_terrain_layer(layer: TileMapLayer):
 	terrain_layer = layer
+
+func update_velocities():
+	var active_positions = active_cells.keys()
+	for pos in active_positions:
+		if !cells.has(pos) or !cells[pos].has_water():
+			continue
+			
+		var cell = cells[pos]
+		
+		# Apply gravity to velocity
+		cell.velocity.y += GRAVITY_FORCE * step_time
+		
+		# Apply floor and wall friction/collision
+		var pos_below = pos + Vector2i(0, 1)
+		var pos_left = pos + Vector2i(-1, 0)
+		var pos_right = pos + Vector2i(1, 0)
+		
+		# Check below for floor
+		if is_solid(pos_below) or (cells.has(pos_below) and cells[pos_below].water_amount >= MAX_WATER):
+			# Redirect velocity horizontally when hitting floor
+			if cell.velocity.y > 0:
+				# Distribute vertical momentum to horizontal
+				var horizontal_force = cell.velocity.y * 0.5
+				cell.velocity.x += horizontal_force * (randf() * 2.0 - 1.0)  # Random left or right
+				cell.velocity.y *= -0.1  # Slight bounce
+		
+		# Check sides for walls
+		if is_solid(pos_left) and cell.velocity.x < 0:
+			cell.velocity.x *= -0.5  # Bounce with energy loss
+		
+		if is_solid(pos_right) and cell.velocity.x > 0:
+			cell.velocity.x *= -0.5  # Bounce with energy loss
+		
+		# Clamp velocity to maximum
+		if cell.velocity.length() > MAX_VELOCITY:
+			cell.velocity = cell.velocity.normalized() * MAX_VELOCITY
+			
+		if cell.velocity.length() < 0.05:
+			cell.velocity = Vector2.ZERO  # Stop unnecessary tiny movements
+
+# Function to set up hardcoded sources
+func setup_sources(source_positions: Array, source_water_rate: float, source_salt_concentration: float):
+	sources.clear()
+	for pos in source_positions:
+		sources.append(WaterSource.new(pos, source_water_rate, source_salt_concentration))
+
+# Function to set up hardcoded drains
+func setup_drains(drain_positions: Array, drain_rate: float):
+	drains.clear()
+	for pos in drain_positions:
+		drains.append(WaterDrain.new(pos, drain_rate))
+
+# Function to fill the terraint with water once
+func fill_pool():
+	var min_x = -64
+	var max_x = 14
+	for x in range(min_x,max_x):
+		var y_level = 24
+		while y_level >=0:
+			var pos = Vector2i(x,y_level)
+			if !is_solid(pos):
+				set_water(pos,1,0)
+			y_level -= 1
+	return
 
 # Function to check if a cell is solid (based on terrain layer)
 func is_solid(pos: Vector2i) -> bool:
 	if terrain_layer == null:
 		return false
-	return terrain_layer.get_cell_source_id(pos) != -1  # Check if a tile exists
+	var world_pos = water_layer.to_global(pos)
+	var terrain_pos = terrain_layer.to_local(world_pos)
+	return terrain_layer.get_cell_source_id(terrain_pos) != -1  # Check if a tile exists
 
-# Getter for water grid (compatibility with existing code)
+# Getter for water grid
 func get_water_grid() -> Dictionary:
-	var water_grid = {}
-	for pos in cells:
-		water_grid[pos] = cells[pos].water_amount
-	return water_grid
-
-# Getter for salt grid (compatibility with existing code)
-func get_salt_grid() -> Dictionary:
-	var salt_grid = {}
-	for pos in cells:
-		salt_grid[pos] = cells[pos].salt_amount
-	return salt_grid
+	return cells
 
 # Setter for water at a specific position
-func set_water(pos: Vector2i, amount: float):
-	if amount <= 0:
+func set_water(pos: Vector2i, water_ammount: float, salt_ammount: float):
+	if water_ammount <= 0:
 		return
 		
 	# Initialize cell if it doesn't exist
 	if !cells.has(pos):
 		cells[pos] = WaterCell.new()
 	
-	cells[pos].water_amount = amount
+	cells[pos].water_amount = water_ammount
+	cells[pos].salt_amount = salt_ammount
 	
 	# Add to active cells
 	active_cells[pos] = true
+# Get all sources
+func get_source_positions() -> Array:
+	return sources
 
-# Setter for salt at a specific position
-func set_salt(pos: Vector2i, amount: float):
-	if amount <= 0:
-		return
+# Get all drains
+func get_drain_positions() -> Array:
+	return drains
+
+# Apply sources to generate water
+func apply_sources():
+	for source in sources:
+		# Skip if source position is solid
+		if is_solid(source.position):
+			continue
 		
-	# Initialize cell if it doesn't exist
-	if !cells.has(pos):
-		cells[pos] = WaterCell.new()
-	
-	cells[pos].salt_amount = amount
+		# Initialize cell if it doesn't exist
+		if !cells.has(source.position):
+			cells[source.position] = WaterCell.new()
+		
+		var cell = cells[source.position]
+		
+		# Calculate how much water we can add (respect MAX_WATER limit)
+		var available_space = MAX_WATER - cell.water_amount
+		var water_to_add = min(source.water_rate, available_space)
+		
+		if water_to_add > 0.001:
+			cell.water_amount += water_to_add
+			
+			# Calculate salt to add based on concentration
+			var salt_to_add = water_to_add * source.salt_concentration
+			cell.salt_amount += salt_to_add
+			
+			# Mark cell as active
+			active_cells[source.position] = true
 
-# Apply the flow of water and salt between two cells
-func apply_flow(from_pos: Vector2i, to_pos: Vector2i, water_amount: float, salt_amount: float) -> void:
+# Apply drains to remove water
+func apply_drains():
+	for drain in drains:
+		# Skip if no water at this position
+		if !cells.has(drain.position) or !cells[drain.position].has_water():
+			continue
+		
+		var cell = cells[drain.position]
+		
+		# Calculate how much water we can remove
+		var water_to_remove = min(drain.drain_rate, cell.water_amount)
+		
+		if water_to_remove > 0.001:
+			# Calculate how much salt to remove (proportional to water)
+			var salt_proportion = water_to_remove / cell.water_amount
+			var salt_to_remove = cell.salt_amount * salt_proportion
+			
+			# Apply the drain
+			cell.water_amount -= water_to_remove
+			cell.salt_amount -= salt_to_remove
+			
+			# Check if cell should be deactivated
+			if !cell.has_water():
+				active_cells.erase(drain.position)
+
+# Modified apply_flow function that also transfers velocity
+func apply_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, water_amount: float, salt_amount: float, velocity: Vector2) -> void:
 	# Initialize cells if they don't exist
-	for pos in [from_pos, to_pos]:
-		if !cells.has(pos):
-			cells[pos] = WaterCell.new()
-	
-	# Calculate available space in target cell
-	var to_cell = cells[to_pos]
-	var total_space = MAX_WATER - to_cell.water_amount
-	
-	# Calculate the flow based on the available space
-	var flow = min(water_amount, total_space)
-	if flow <= 0.001:  # Don't flow if there's no meaningful space or water
-		return
+	if !cells.has(from_pos):
+		cells[from_pos] = WaterCell.new()
+	if !cells.has(to_pos):
+		cells[to_pos] = WaterCell.new()
 	
 	var from_cell = cells[from_pos]
+	var to_cell = cells[to_pos]
 	
-	# Calculate salt flow in proportion to the water flow
+	# Calculate the flow
+	var flow = min(water_amount, MAX_WATER - to_cell.water_amount)
+	if flow <= 0.001:
+		return
+	
+	# Calculate salt flow
 	var salt_flow = 0.0
-	if from_cell.water_amount > 0.001:  # Avoid division by very small numbers
+	if from_cell.water_amount > 0.001:
 		salt_flow = salt_amount * (flow / from_cell.water_amount)
+	
+	# Calculate velocity transfer
+	var velocity_transfer = from_cell.velocity.lerp(velocity, 0.5) * VELOCITY_TRANSFER
+	
+	# Calculate new velocities based on conservation of momentum
+	var total_water_after = to_cell.water_amount + flow
+	
+	# Mix velocities based on mass (water amount)
+	var new_velocity = Vector2.ZERO
+	if total_water_after > 0.001:
+		new_velocity = (to_cell.velocity * to_cell.water_amount + velocity_transfer * flow) / total_water_after
 	
 	# Apply flow to the cells
 	from_cell.water_amount -= flow
 	to_cell.water_amount += flow
 	from_cell.salt_amount -= salt_flow
 	to_cell.salt_amount += salt_flow
+	
+	# Apply new velocity
+	to_cell.velocity = new_velocity
 	
 	# Track active cells
 	if from_cell.has_water():
@@ -127,84 +270,102 @@ func apply_flow(from_pos: Vector2i, to_pos: Vector2i, water_amount: float, salt_
 		active_cells[to_pos] = true
 	else:
 		active_cells.erase(to_pos)
+		
+# Helper function to get primary direction from velocity vector
+func get_primary_direction(velocity_dir: Vector2) -> Vector2i:
+	# Determine which direction (up, down, left, right) best matches the velocity
+	if abs(velocity_dir.x) > abs(velocity_dir.y):
+		return Vector2i(sign(velocity_dir.x), 0)  # Left or right
+	else:
+		return Vector2i(0, sign(velocity_dir.y))  # Up or down
 
+# Helper function to get secondary direction from velocity vector
+func get_secondary_direction(velocity_dir: Vector2) -> Vector2i:
+	# Get the orthogonal direction to primary
+	if abs(velocity_dir.x) > abs(velocity_dir.y):
+		return Vector2i(0, sign(velocity_dir.y))  # Up or down
+	else:
+		return Vector2i(sign(velocity_dir.x), 0)  # Left or right
+		
+# Try to flow water in a specific direction based on velocity
+func try_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, velocity: Vector2) -> bool:
+	if is_solid(to_pos):
+		return false
+		
+	if !cells.has(from_pos) or !cells[from_pos].has_water():
+		return false
+		
+	var from_cell = cells[from_pos]
+	var to_water = 0.0
+	
+	if cells.has(to_pos):
+		to_water = cells[to_pos].water_amount
+		
+	if to_water >= MAX_WATER:
+		return false
+		
+	var available_space = MAX_WATER - to_water
+	var velocity_magnitude = velocity.length()
+	
+	# Calculate flow amount based on velocity and available space
+	var flow_proportion = min(0.15 + velocity_magnitude * 0.05, 1)  # Higher velocity causes more flow
+	var flow_amount = min(from_cell.water_amount * flow_proportion, available_space)
+	
+	if flow_amount <= 0.001:
+		return false
+		
+	var salt_amount = 0.0
+	if from_cell.water_amount > 0.001:
+		salt_amount = from_cell.salt_amount * (flow_amount / from_cell.water_amount)
+		
+	apply_flow_with_velocity(from_pos, to_pos, flow_amount, salt_amount, velocity)
+	return true
+	
 # Main function for moving water
 func move_water(pos: Vector2i):
 	if !cells.has(pos) or !cells[pos].has_water():
 		return
 		
 	var cell = cells[pos]
-	var water_amount = cell.water_amount
-	var salt_amount = cell.salt_amount
-	var viscosity = cell.calculate_viscosity()
 	
-	# Calculate positions of neighboring cells
-	var pos_below = pos + Vector2i(0, 1)
-	var pos_left = pos + Vector2i(-1, 0)
-	var pos_right = pos + Vector2i(1, 0)
+	# Calculate positions based on velocity direction
+	var velocity_direction = cell.velocity.normalized()
+	var primary_direction = get_primary_direction(velocity_direction)
+	var secondary_direction = get_secondary_direction(velocity_direction)
 	
-	# Try to move down if possible
-	if !is_solid(pos_below):
-		var below_water = 0.0
-		if cells.has(pos_below):
-			below_water = cells[pos_below].water_amount
-			
-		if below_water < MAX_WATER:
-			# Calculate flow amount with viscosity and surface tension
-			var available_space = MAX_WATER - below_water
-			var flow_amount = min(water_amount, available_space) * (1.0 - SURFACE_TENSION) / viscosity
-			
-			if flow_amount > 0.001:
-				apply_flow(pos, pos_below, flow_amount, salt_amount * (flow_amount / water_amount))
-				return  # Exit early after downward movement
+	# Try to move in primary direction first
+	var primary_pos = pos + primary_direction
+	if !is_solid(primary_pos) and try_flow_with_velocity(pos, primary_pos, cell.velocity):
+		return
 	
-	# If downward movement is blocked, try moving sideways
-	var move_left = pos.x > 0 and !is_solid(pos_left-Vector2i(-1, 0))
-	var move_right = !is_solid(pos_right-Vector2i(1, 0))
-	
-	# Get water levels in neighboring cells
-	var left_water = 0.0
-	var right_water = 0.0
-	
-	if cells.has(pos_left):
-		left_water = cells[pos_left].water_amount
-		
-	if cells.has(pos_right):
-		right_water = cells[pos_right].water_amount
-		
-	move_left = move_left and left_water < MAX_WATER
-	move_right = move_right and right_water < MAX_WATER
-	
-	if move_left and move_right:
-		# Distribute water evenly between the three cells
-		var positions = [pos, pos_left, pos_right]
-		distribute_water_evenly(positions, viscosity)
-	elif move_left:
-		# Distribute water evenly between current and left cells
-		var positions = [pos, pos_left]
-		distribute_water_evenly(positions, viscosity)
-	elif move_right:
-		# Distribute water evenly between current and right cells
-		var positions = [pos, pos_right]
-		distribute_water_evenly(positions, viscosity)
+	# Try to move in secondary direction if primary failed
+	var secondary_pos = pos + secondary_direction
+	if !is_solid(secondary_pos) and try_flow_with_velocity(pos, secondary_pos, cell.velocity * 0.7):
+		return
 
-# Distribute water evenly between cells with surface tension and viscosity effects
-func distribute_water_evenly(positions: Array, viscosity: float) -> void:
+
+func distribute_water_evenly_with_velocity(positions: Array) -> void:
 	# Calculate current total water across all positions
 	var total_water = 0.0
 	var current_levels = {}
+	var cell_velocities = {}
 	
 	for pos in positions:
 		var amount = 0.0
-		if cells.has(pos):
+		var vel = Vector2.ZERO
+		
+		if cells.has(pos) and cells[pos].has_water():
 			amount = cells[pos].water_amount
+			vel = cells[pos].velocity
+			
 		total_water += amount
 		current_levels[pos] = amount
+		cell_velocities[pos] = vel
 	
 	# Calculate target water level (even distribution)
 	var target_level = total_water / positions.size()
 	
-	# Apply flows to reach target level, accounting for surface tension and viscosity
+	# Apply flows to reach target level, accounting velocity
 	for pos in positions:
 		var current_level = current_levels[pos]
 		var difference = target_level - current_level
@@ -221,17 +382,18 @@ func distribute_water_evenly(positions: Array, viscosity: float) -> void:
 					if donor_level > target_level:
 						var flow_amount = min(donor_level - target_level, target_level - current_level)
 						
-						# Adjust for surface tension and viscosity
-						flow_amount *= (1.0 - SURFACE_TENSION) / viscosity
-						
 						if flow_amount > 0.001 and cells.has(donor_pos) and cells[donor_pos].has_water():
 							var donor_cell = cells[donor_pos]
 							var salt_flow = 0.0
 							
 							if donor_cell.water_amount > 0.001:
 								salt_flow = donor_cell.salt_amount * (flow_amount / donor_cell.water_amount)
-								
-							apply_flow(donor_pos, pos, flow_amount, salt_flow)
+							
+							# Calculate flow direction for velocity
+							var flow_direction = Vector2(pos.x - donor_pos.x, pos.y - donor_pos.y).normalized()
+							var velocity_contrib = flow_direction * 0.5 + donor_cell.velocity * 0.5
+							
+							apply_flow_with_velocity(donor_pos, pos, flow_amount, salt_flow, velocity_contrib)
 							
 							# Update current levels for next iteration
 							current_levels[donor_pos] -= flow_amount
@@ -287,13 +449,13 @@ func diffuse_salt():
 			cells[pos] = WaterCell.new()
 		cells[pos].salt_amount += salt_diffusion[pos]
 
-# Update simulation
+# Modify the update_simulation function to include velocity updates
 func update_simulation():
-	if debug_mode:
-		print("=== Water Grid Before Update ===")
-		for pos in cells.keys():
-			if cells[pos].has_water():
-				print("Cell: ", pos, " | Water: ", cells[pos].water_amount, " | Salt: ", cells[pos].salt_amount)
+	# Apply sources to generate water
+	apply_sources()
+	
+	# Update velocities for all active cells
+	update_velocities()
 	
 	# Create a copy of active cells keys to iterate through
 	var current_active_cells = active_cells.keys()
@@ -306,6 +468,9 @@ func update_simulation():
 	# Apply salt diffusion
 	diffuse_salt()
 	
+	# Apply drains to remove water
+	apply_drains()
+	
 	# Clean up cells with negligible water
 	var cells_to_remove = []
 	for pos in cells.keys():
@@ -315,9 +480,3 @@ func update_simulation():
 	
 	for pos in cells_to_remove:
 		cells.erase(pos)
-		
-	if debug_mode:
-		print("=== Water Grid After Update ===")
-		for pos in cells.keys():
-			if cells[pos].has_water():
-				print("Cell: ", pos, " | Water: ", cells[pos].water_amount, " | Salt: ", cells[pos].salt_amount)
