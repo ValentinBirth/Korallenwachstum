@@ -14,8 +14,8 @@ var cells = {}  # Dictionary of Vector2i -> WaterCell
 var particles = {}  # Track active particles 
 
 # Setup initial coral tiles
-func setCells(cells):
-	cells = cells
+func setCells(new_cells):
+	cells = new_cells
 	
 func getCells():
 	return cells
@@ -57,10 +57,10 @@ func move_particles():
 			var neighbor_pos = particle_pos + offset
 			if cells.has(neighbor_pos):
 				# If particle touches coral, it sticks and adds a new growth point
-					particles.erase(particle_pos)
-					cells[particle_pos] = 1
-					stuck = true
-					break
+				particles.erase(particle_pos)
+				cells[particle_pos] = 1
+				stuck = true
+				break
 
 		# If particle didn’t stick, try moving it to an empty spot near coral
 		if not stuck:
@@ -73,9 +73,13 @@ func move_particles():
 				and !particles.has(new_pos) # Make sure it's empty
 			):
 				particles.erase(particle_pos)
-				particles[new_pos] = 1
 				remaining_particles.append(new_pos)
 			else:
 				remaining_particles.append(particle_pos)
 
-	particles = remaining_particles
+
+	var new_particles = {}  
+	for pos in remaining_particles:
+		new_particles[pos] = 1  # Oder eine sinnvolle Zahl
+
+	particles = new_particles
