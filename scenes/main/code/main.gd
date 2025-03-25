@@ -4,12 +4,15 @@ class_name MainSimulation
 
 # Importiere das WaterSimulation-Script
 @export var water_simulation_script: Script
+@export var coral_simulation_script: Script
 @onready var water_layer: TileMapLayer = $layer_holder/WaterLayer
 @onready var terrain_layer: TileMapLayer = $layer_holder/TerrainLayer
+@onready var coral_layer: TileMapLayer = $layer_holder/CoralLayer
 
 @onready var Salt_slider: VSlider = $"Salt Regulator"
 
 var water_simulation: WaterSimulation
+var coral_simulation: CoralSimulation
 var step_time: float = 0.01
 var time_since_last_step: float = 0.05
 
@@ -31,6 +34,14 @@ var time_since_last_step: float = 0.05
 @export var drain_positions: Array[Vector2i] = [
 	Vector2i(-64,1)
 ]
+func findCoralCells():
+	var corals = {}
+	# Scan all tiles and detect the coral's source_id
+	for pos in coral_layer.get_used_cells():
+		var source_id = coral_layer.get_cell_source_id(pos)
+		if source_id != -1:
+			corals[pos] = 1
+	return corals
 
 func _ready():
 	# Initialize the water simulation
@@ -45,6 +56,14 @@ func _ready():
 	water_simulation.fill_pool()
 	
 	# Initial rendering update
+	coral_simulation = coral_simulation_script.new()
+	coral_simulation.set_terrain_layer(terrain_layer)
+	coral_simulation.set_coral_layer(coral_layer)
+	coral_simulation.set_water_layer(water_layer)
+	coral_simulation.setCells(findCoralCells())
+	coral_simulation.spawn_particles()
+	
+	
 	update_layers()
 
 func _process(delta: float):
@@ -57,6 +76,7 @@ func _process(delta: float):
 	time_since_last_step += delta
 	if time_since_last_step >= step_time:
 		water_simulation.update_simulation()
+		coral_simulation.move_particles()
 		time_since_last_step = 0.0
 	
 	# Always update rendering
@@ -73,6 +93,17 @@ func update_layers():
 	for cell in water_grid.keys():
 		var tile_vector = get_tile_id_for_value(water_grid[cell])
 		water_layer.set_cell(cell, 1, tile_vector)
+		
+	coral_layer.clear()
+	
+	var corals = coral_simulation.getCells()
+	var particles = coral_simulation.getParticles()
+	
+	for coral in corals.keys():
+		coral_layer.set_cell(coral,0,Vector2i(21,5))
+		
+	for particle in particles.keys():
+		coral_layer.set_cell(particle,0,Vector2i(8,9))
 
 func get_tile_id_for_value(water_cell: WaterSimulation.WaterCell) -> Vector2i:
 	# Calculate visual representation based on water and salt values
