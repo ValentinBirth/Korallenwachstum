@@ -37,28 +37,12 @@ func set_water_layer(layer: TileMapLayer):
 func set_coral_layer(layer: TileMapLayer):
 	coral_layer = layer
 
-func is_valid_position(pos: Vector2i) -> bool:
-	# Ensure both terrain and water layers exist
-	if terrain_layer == null or water_layer == null:
+func is_solid(pos: Vector2i) -> bool:
+	if water_layer == null:
 		return false
-
-	# Convert coral position to world coordinates
 	var world_pos = coral_layer.to_global(pos)
-
-	# Convert world coordinates to terrain and water positions
-	var terrain_pos = terrain_layer.to_local(world_pos)
 	var water_pos = water_layer.to_local(world_pos)
-
-	# Get source IDs for terrain and water layers
-	var terrain_source_id = terrain_layer.get_parent().get_cell_source_id(
-		terrain_layer.get_layer(), terrain_pos
-	)
-	var water_source_id = water_layer.get_parent().get_cell_source_id(
-		water_layer.get_layer(), water_pos
-	)
-
-	# The position is valid if it's terrain AND water (or other boundary)
-	return terrain_source_id != -1 and water_source_id != -1
+	return water_layer.get_cell_source_id(water_pos) != -1
 	
 # Spawn wandering particles randomly around coral
 func spawn_particles():
@@ -105,7 +89,7 @@ func move_particles():
 
 			# Ensure new position is valid and unoccupied
 			if (
-				is_valid_position(new_pos) 
+				is_solid(new_pos) 
 				#new_pos.x >= -45 and new_pos.x <= 184
 				#and new_pos.y >= 80 and new_pos.y <= 113
 				and !particles.has(new_pos) # Ensure no particle already there
