@@ -237,11 +237,6 @@ func apply_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, water_amount
 	if flow <= 0.001:
 		return
 	
-	# Calculate salt flow
-	var salt_flow = 0.0
-	if from_cell.water_amount > 0.001:
-		salt_flow = salt_amount * (flow / from_cell.water_amount)
-	
 	# Calculate velocity transfer
 	var velocity_transfer = from_cell.velocity.lerp(velocity, 0.5) * VELOCITY_TRANSFER
 	
@@ -256,8 +251,8 @@ func apply_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, water_amount
 	# Apply flow to the cells
 	from_cell.water_amount -= flow
 	to_cell.water_amount += flow
-	from_cell.salt_amount -= salt_flow
-	to_cell.salt_amount += salt_flow
+	from_cell.salt_amount -= salt_amount
+	to_cell.salt_amount += salt_amount
 	
 	# Apply new velocity
 	to_cell.velocity = new_velocity

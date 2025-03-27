@@ -23,17 +23,23 @@ var time_since_last_step: float = 0.05
 @export var salt_amount: float = 1.0
 
 # Source and drain parameters
-@export var source_water_rate: float = 1
+@export var source_water_rate: float = 0.5
 @export var source_salt_concentration: float = 0.0
-@export var drain_rate: float = 0.5
+@export var drain_rate: float = 1
 
 # Hardcoded source and drain positions
 @export var source_positions: Array[Vector2i] = [
-	Vector2i(14,1)
+	Vector2i(14,1),
+	Vector2i(14,2),
+	Vector2i(14,3),
+	Vector2i(14,4)
 ]
 
 @export var drain_positions: Array[Vector2i] = [
-	Vector2i(-64,1)
+	Vector2i(-64,1),
+	Vector2i(-64,2),
+	Vector2i(-64,3),
+	Vector2i(-64,4)
 ]
 func findCoralCells():
 	var corals = {}
