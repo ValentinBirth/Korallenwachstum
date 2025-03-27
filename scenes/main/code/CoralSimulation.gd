@@ -28,8 +28,8 @@ func spawn_particles():
 	print("Spawning particles...")
 	for i in range(particle_count):
 		var particle_pos = Vector2i(
-			randi_range(-253, -26),  # Random x position
-			randi_range(50, 70)    # Random y position
+			randi_range(5, 90),  # X-Koordinate zwischen 5 und 90
+			randi_range(107, 120) # Y-Koordinate knapp über den Korallen
 		)
 		print("Particle created at: ", particle_pos)  # Ausgabe zur Überprüfung der Position
 		particles[particle_pos] = 1
@@ -53,7 +53,7 @@ func move_particles():
 		var stuck = false
 		for offset in directions:
 			var neighbor_pos = particle_pos + offset
-			if cells.has(neighbor_pos):
+			if cells.has(neighbor_pos):  
 				# If particle touches coral, it sticks and adds a new growth point
 				particles.erase(particle_pos)
 				cells[particle_pos] = 1
@@ -66,9 +66,9 @@ func move_particles():
 
 			# Check if new position is within the permitted area and no particle exists there
 			if (
-				new_pos.x >= -253 and new_pos.x <= -26
-				and new_pos.y >= 50 and new_pos.y <= 70
-				and !particles.has(new_pos)
+				new_pos.x >= 5 and new_pos.x <= 90
+				and new_pos.y >= 107 and new_pos.y <= 120
+				and !particles.has(new_pos)  # Keine Überschneidung mit anderen Partikeln
 			):
 				remaining_particles[new_pos] = 1  # Partikel bewegt sich
 			else:
