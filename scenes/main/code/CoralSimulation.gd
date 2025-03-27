@@ -1,28 +1,28 @@
 extends Object
 
 class_name CoralSimulation
+
 @export var particle_count: int = 100
 @export var growth_rate: float = 0.05
 
 var coral_source_id: int
 var coral_atlas_coord = Vector2i(23, 5)  # Coral tile atlas coords
-#var particle_atlas_coord = Vector2i(0, 0)  # Particle tile atlas coords
-var particle_atlas_coord = Vector2i(21, 5)
+var particle_atlas_coord = Vector2i(21, 5)  # Particle tile atlas coords
 
-# Dictionary to store corals
-var cells = {}  # Dictionary of Vector2i -> WaterCell
-var particles = {}  # Track active particles 
+# Dictionaries zur Speicherung der Korallen und Partikel
+var cells = {}  # Dictionary: Vector2i -> Coral
+var particles = {}  # Dictionary: Vector2i -> 1 (existierende Partikel)
 
 # Setup initial coral tiles
 func setCells(new_cells):
 	cells = new_cells
-	
+
 func getCells():
 	return cells
 
 func getParticles():
 	return particles
-	
+
 # Spawn wandering particles randomly around coral
 func spawn_particles():
 	print("Spawning particles...")
@@ -37,12 +37,11 @@ func spawn_particles():
 # Move particles randomly (with radial growth and branching)
 func move_particles():
 	print("Timer triggered - moving particles...")
-	var remaining_particles = []
+	var remaining_particles = {}
 
-	# Radial movement: particles will spread out from the origin
-	for particle_pos in particles:
-		print("Moving particle at: ", particle_pos)  # Ausgabe, um Positionen der Partikel zu prüfen
-		# Determine the direction of growth (radially outwards)
+	for particle_pos in particles.keys():  # Iteriere über bestehende Partikel
+		print("Moving particle at: ", particle_pos)
+
 		var directions = [
 			Vector2i(0, -1), Vector2i(1, 0),
 			Vector2i(-1, 0), Vector2i(0, 1),
@@ -51,7 +50,6 @@ func move_particles():
 		]
 		directions.shuffle()
 
-		# Check if the particle touches existing coral — not other particles
 		var stuck = false
 		for offset in directions:
 			var neighbor_pos = particle_pos + offset
@@ -68,18 +66,12 @@ func move_particles():
 
 			# Check if new position is within the permitted area and no particle exists there
 			if (
-				new_pos.x >= -10 and new_pos.x <= 100
-				and new_pos.y >= 93 and new_pos.y <= 113
-				and !particles.has(new_pos) # Make sure it's empty
+				new_pos.x >= -253 and new_pos.x <= -26
+				and new_pos.y >= 50 and new_pos.y <= 70
+				and !particles.has(new_pos)
 			):
-				particles.erase(particle_pos)
-				remaining_particles.append(new_pos)
+				remaining_particles[new_pos] = 1  # Partikel bewegt sich
 			else:
-				remaining_particles.append(particle_pos)
+				remaining_particles[particle_pos] = 1  # Falls keine Bewegung möglich, bleibt es stehen
 
-
-	var new_particles = {}  
-	for pos in remaining_particles:
-		new_particles[pos] = 1  # Oder eine sinnvolle Zahl
-
-	particles = new_particles
+	particles = remaining_particles  # Aktualisiere Partikel-Liste

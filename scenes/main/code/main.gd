@@ -97,10 +97,10 @@ func update_layers():
 	var particles = coral_simulation.getParticles()
 	
 	for coral in corals.keys():
-		coral_layer.set_cell(coral,1,Vector2i(21,5))
+		coral_layer.set_cell(coral,0,Vector2i(21,5))
 		
 	for particle in particles.keys():
-		coral_layer.set_cell(particle,1,Vector2i(3,15))
+		coral_layer.set_cell(particle,0,Vector2i(21,5))
 
 func get_tile_id_for_value(water_cell: WaterSimulation.WaterCell) -> Vector2i:
 	# Calculate visual representation based on water and salt values
