@@ -6,8 +6,6 @@ class_name CoralSimulation
 @export var growth_rate: float = 0.05
 
 var coral_source_id: int
-var coral_atlas_coord = Vector2i(23, 5)  # Coral tile atlas coords
-var particle_atlas_coord = Vector2i(21, 5)  # Particle tile atlas coords
 
 # Dictionaries zur Speicherung der Korallen und Partikel
 var cells = {}  # Dictionary: Vector2i -> Coral
@@ -33,45 +31,58 @@ func spawn_particles():
 		)
 		print("Particle created at: ", particle_pos)  # Ausgabe zur Überprüfung der Position
 		particles[particle_pos] = 1
-
+		
+func canMove(pos: Vector2i):
+	return pos.x >= 5 and pos.x <= 90 and pos.y >= 107 and pos.y <= 120 and !particles.has(pos)
+	
+# Calculates Probability of growth at a position
+func canGrow(pos: Vector2i):
+	return true
+	
 # Move particles randomly (with radial growth and branching)
 func move_particles():
-	print("Timer triggered - moving particles...")
-	var remaining_particles = {}
+	var new_particles = {}
 
-	for particle_pos in particles.keys():  # Iteriere über bestehende Partikel
-		print("Moving particle at: ", particle_pos)
+	for particle_pos in particles.keys():
+		var stuck = false  # Flag to track if particle sticks to coral
 
-		var directions = [
-			Vector2i(0, -1), Vector2i(1, 0),
-			Vector2i(-1, 0), Vector2i(0, 1),
-			Vector2i(1, 1), Vector2i(1, -1),
-			Vector2i(-1, 1), Vector2i(-1, -1)
-		]
-		directions.shuffle()
-
-		var stuck = false
-		for offset in directions:
+		# Try sticking to coral first
+		for offset in get_shuffled_directions():
 			var neighbor_pos = particle_pos + offset
-			if cells.has(neighbor_pos):  
-				# If particle touches coral, it sticks and adds a new growth point
-				particles.erase(particle_pos)
-				cells[particle_pos] = 1
+			if cells.has(neighbor_pos) and canGrow(particle_pos):  
+				cells[particle_pos] = 1  # Particle turns into coral
 				stuck = true
-				break
+				break  # No need to check further directions
 
-		# If particle didn’t stick, try moving it to an empty spot near coral
+		# If the particle didn't stick, attempt movement
 		if not stuck:
-			var new_pos = particle_pos + directions.pick_random()
+			var new_pos = particle_pos + get_random_direction()
 
-			# Check if new position is within the permitted area and no particle exists there
-			if (
-				new_pos.x >= 5 and new_pos.x <= 90
-				and new_pos.y >= 107 and new_pos.y <= 120
-				and !particles.has(new_pos)  # Keine Überschneidung mit anderen Partikeln
-			):
-				remaining_particles[new_pos] = 1  # Partikel bewegt sich
+			# Ensure movement is within bounds and doesn't collide
+			if canMove(new_pos):
+				new_particles[new_pos] = 1  
 			else:
-				remaining_particles[particle_pos] = 1  # Falls keine Bewegung möglich, bleibt es stehen
+				new_particles[particle_pos] = 1  
 
-	particles = remaining_particles  # Aktualisiere Partikel-Liste
+	particles = new_particles  # Update particle list
+
+# Helper function to get shuffled movement directions
+func get_shuffled_directions() -> Array:
+	var directions = [
+		Vector2i(0, -1), Vector2i(1, 0),
+		Vector2i(-1, 0), Vector2i(0, 1),
+		Vector2i(1, 1), Vector2i(1, -1),
+		Vector2i(-1, 1), Vector2i(-1, -1)
+	]
+	directions.shuffle()
+	return directions
+
+# Helper function to get a random movement direction
+func get_random_direction() -> Vector2i:
+	var directions = [
+		Vector2i(0, -1), Vector2i(1, 0),
+		Vector2i(-1, 0), Vector2i(0, 1),
+		Vector2i(1, 1), Vector2i(1, -1),
+		Vector2i(-1, 1), Vector2i(-1, -1)
+	]
+	return directions[randi_range(0, directions.size() - 1)]
