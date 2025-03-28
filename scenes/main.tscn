@@ -5,11 +5,8 @@
 [ext_resource type="TileSet" uid="uid://bgarpvoo0ldga" path="res://scenes/main/assets/watertiles_v3.tres" id="3_68ac8"]
 [ext_resource type="Script" path="res://util/cam.gd" id="4_ge8cv"]
 [ext_resource type="TileSet" uid="uid://du45qll5fbvq1" path="res://scenes/main/assets/terrainTiles.tres" id="4_rc0l6"]
-<<<<<<< HEAD
-[ext_resource type="Script" path="res://scenes/CoralSimulation.gd" id="5_b8hr8"]
-=======
+
 [ext_resource type="Script" path="res://scenes/main/code/CoralSimulation.gd" id="5_b8hr8"]
->>>>>>> origin/main
 
 [node name="Main" type="Node2D"]
 position = Vector2(583, 280)
