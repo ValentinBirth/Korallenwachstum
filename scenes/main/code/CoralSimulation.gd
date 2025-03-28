@@ -3,18 +3,18 @@ extends Object
 class_name CoralSimulation
 
 @export var particle_count: int = 100
-@export var growth_rate: float = 0.05
+@export var growth_rate: float = 0.5
 
 var coral_source_id: int
 
 # Dictionaries zur Speicherung der Korallen und Partikel
 var cells = {}  # Dictionary: Vector2i -> Coral
 var particles = {}  # Dictionary: Vector2i -> 1 (existierende Partikel)
-
+var original_cells = {} # Speichert die Startkorallen dauerhaft
 # Setup initial coral tiles
 func setCells(new_cells):
 	cells = new_cells
-
+	original_cells = new_cells.duplicate()
 func getCells():
 	return cells
 
@@ -86,3 +86,11 @@ func get_random_direction() -> Vector2i:
 		Vector2i(-1, 1), Vector2i(-1, -1)
 	]
 	return directions[randi_range(0, directions.size() - 1)]
+func reset():
+	print("Resetting coral simulation...")
+
+	particles.clear()
+
+	# originale Korallen wiederherstellen
+	cells = original_cells.duplicate()
+	
