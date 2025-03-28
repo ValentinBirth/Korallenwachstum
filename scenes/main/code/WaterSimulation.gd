@@ -121,7 +121,7 @@ func setup_drains(drain_positions: Array, drain_rate: float):
 		drains.append(WaterDrain.new(pos, drain_rate))
 
 # Function to fill the terraint with water once
-func fill_pool():
+func fill_pool(salt_amount):
 	var min_x = -64
 	var max_x = 14
 	for x in range(min_x,max_x):
@@ -129,10 +129,12 @@ func fill_pool():
 		while y_level >=0:
 			var pos = Vector2i(x,y_level)
 			if !is_solid(pos):
-				set_water(pos,1,0)
+				set_water(pos,1,salt_amount)
 			y_level -= 1
 	return
-
+func clear_pool():
+	cells.clear()
+	active_cells.clear()
 # Function to check if a cell is solid (based on terrain layer)
 func is_solid(pos: Vector2i) -> bool:
 	if terrain_layer == null:
@@ -235,11 +237,6 @@ func apply_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, water_amount
 	if flow <= 0.001:
 		return
 	
-	# Calculate salt flow
-	var salt_flow = 0.0
-	if from_cell.water_amount > 0.001:
-		salt_flow = salt_amount * (flow / from_cell.water_amount)
-	
 	# Calculate velocity transfer
 	var velocity_transfer = from_cell.velocity.lerp(velocity, 0.5) * VELOCITY_TRANSFER
 	
@@ -254,8 +251,8 @@ func apply_flow_with_velocity(from_pos: Vector2i, to_pos: Vector2i, water_amount
 	# Apply flow to the cells
 	from_cell.water_amount -= flow
 	to_cell.water_amount += flow
-	from_cell.salt_amount -= salt_flow
-	to_cell.salt_amount += salt_flow
+	from_cell.salt_amount -= salt_amount
+	to_cell.salt_amount += salt_amount
 	
 	# Apply new velocity
 	to_cell.velocity = new_velocity

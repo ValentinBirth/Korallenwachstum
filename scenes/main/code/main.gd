@@ -10,6 +10,7 @@ class_name MainSimulation
 @onready var coral_layer: TileMapLayer = $layer_holder/CoralLayer
 
 @onready var Salt_slider: VSlider = $"Salt Regulator"
+@onready var FillSalt_slider: VSlider = $"FillSaltRegulator"
 
 var water_simulation: WaterSimulation
 var coral_simulation: CoralSimulation
@@ -22,17 +23,23 @@ var time_since_last_step: float = 0.05
 @export var salt_amount: float = 1.0
 
 # Source and drain parameters
-@export var source_water_rate: float = 1
+@export var source_water_rate: float = 0.5
 @export var source_salt_concentration: float = 0.0
-@export var drain_rate: float = 0.5
+@export var drain_rate: float = 1
 
 # Hardcoded source and drain positions
 @export var source_positions: Array[Vector2i] = [
-	Vector2i(14,1)
+	Vector2i(14,1),
+	Vector2i(14,2),
+	Vector2i(14,3),
+	Vector2i(14,4)
 ]
 
 @export var drain_positions: Array[Vector2i] = [
-	Vector2i(-64,1)
+	Vector2i(-64,1),
+	Vector2i(-64,2),
+	Vector2i(-64,3),
+	Vector2i(-64,4)
 ]
 func findCoralCells():
 	var corals = {}
@@ -53,13 +60,16 @@ func _ready():
 	# Set up sources and drains
 	water_simulation.setup_sources(source_positions, source_water_rate, source_salt_concentration)
 	water_simulation.setup_drains(drain_positions, drain_rate)
-	water_simulation.fill_pool()
+	#water_simulation.fill_pool()
 	
 	# Initial rendering update
 	coral_simulation = coral_simulation_script.new()
+<<<<<<< HEAD
 	coral_simulation.set_terrain_layer(terrain_layer)
 	coral_simulation.set_coral_layer(coral_layer)
 	coral_simulation.set_water_layer(water_layer)
+=======
+>>>>>>> origin/main
 	coral_simulation.setCells(findCoralCells())
 	coral_simulation.spawn_particles()
 	
@@ -100,10 +110,17 @@ func update_layers():
 	var particles = coral_simulation.getParticles()
 	
 	for coral in corals.keys():
+<<<<<<< HEAD
 		coral_layer.set_cell(coral,0,Vector2i(21,5))
 		
 	for particle in particles.keys():
 		coral_layer.set_cell(particle,0,Vector2i(8,9))
+=======
+		coral_layer.set_cell(coral,0,Vector2i(14,9))
+		
+	for particle in particles.keys():
+		coral_layer.set_cell(particle,0,Vector2i(3,16))
+>>>>>>> origin/main
 
 func get_tile_id_for_value(water_cell: WaterSimulation.WaterCell) -> Vector2i:
 	# Calculate visual representation based on water and salt values
@@ -132,3 +149,15 @@ func update_sources():
 	var sources = water_simulation.get_source_positions()
 	for source in sources:
 		source.salt_concentration = Salt_slider.value
+
+
+
+func _on_fill_pool_button_pressed() -> void:
+	var salt_value = FillSalt_slider.value  
+	water_simulation.fill_pool(salt_value)  
+	update_layers()
+
+
+func _on_clear_pool_button_pressed() -> void:
+	water_simulation.clear_pool()
+	

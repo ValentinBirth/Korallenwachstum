@@ -5,7 +5,11 @@
 [ext_resource type="TileSet" uid="uid://bgarpvoo0ldga" path="res://scenes/main/assets/watertiles_v3.tres" id="3_68ac8"]
 [ext_resource type="Script" path="res://util/cam.gd" id="4_ge8cv"]
 [ext_resource type="TileSet" uid="uid://du45qll5fbvq1" path="res://scenes/main/assets/terrainTiles.tres" id="4_rc0l6"]
+<<<<<<< HEAD
 [ext_resource type="Script" path="res://scenes/CoralSimulation.gd" id="5_b8hr8"]
+=======
+[ext_resource type="Script" path="res://scenes/main/code/CoralSimulation.gd" id="5_b8hr8"]
+>>>>>>> origin/main
 
 [node name="Main" type="Node2D"]
 position = Vector2(583, 280)
@@ -26,9 +30,15 @@ tile_map_data = PackedByteArray("AADF/xkAAAASABUAAADF/xoAAAASABYAAADF/xsAAAASABc
 tile_set = ExtResource("4_rc0l6")
 
 [node name="CoralLayer" type="TileMapLayer" parent="layer_holder"]
+<<<<<<< HEAD
 position = Vector2(-752, -56)
 scale = Vector2(0.25, 0.25)
 tile_map_data = PackedByteArray("AAAIAG8AAAAXAAUAAAAIAHAAAAAXAAUAAAAIAHEAAAAXAAUAAAAvAG8AAAAXAAUAAAAvAHAAAAAXAAUAAAAvAHEAAAAXAAUAAABVAG8AAAAXAAUAAABWAG8AAAAXAAUAAABWAHAAAAAXAAUAAABWAHEAAAAXAAUAAAAwAG4AAAAXAAUAAAAvAG4AAAAXAAUAAAAIAG4AAAAXAAUAAAA=")
+=======
+position = Vector2(-740, -56)
+scale = Vector2(0.25, 0.25)
+tile_map_data = PackedByteArray("AAAIAHEAAAAXAAUAAAAIAHAAAAAXAAUAAAAIAG8AAAAXAAUAAAAIAG4AAAAXAAUAAABVAG8AAAAXAAUAAABWAG8AAAAXAAUAAABWAHAAAAAXAAUAAABWAHEAAAAXAAUAAAAvAG4AAAAXAAUAAAAvAG8AAAAXAAUAAAAvAHAAAAAXAAUAAAAvAHEAAAAXAAUAAAAwAG4AAAAXAAUAAAA=")
+>>>>>>> origin/main
 tile_set = ExtResource("4_rc0l6")
 script = ExtResource("5_b8hr8")
 
@@ -48,3 +58,31 @@ offset_right = -395.0
 offset_bottom = -282.0
 max_value = 1.0
 step = 0.05
+
+[node name="FillSaltRegulator" type="VSlider" parent="."]
+modulate = Color(0.054902, 1, 1, 1)
+offset_left = -1523.0
+offset_top = -465.0
+offset_right = -1499.0
+offset_bottom = -284.0
+max_value = 1.0
+step = 0.05
+
+[node name="ClearPoolButton" type="Button" parent="."]
+modulate = Color(0, 1, 1, 1)
+offset_left = -1406.0
+offset_top = -348.0
+offset_right = -1319.0
+offset_bottom = -294.0
+text = "Clear Pool"
+
+[node name="FillPoolButton" type="Button" parent="."]
+modulate = Color(0.0392157, 1, 1, 1)
+offset_left = -1487.0
+offset_top = -348.0
+offset_right = -1421.0
+offset_bottom = -293.0
+text = "fill Pool"
+
+[connection signal="pressed" from="ClearPoolButton" to="." method="_on_clear_pool_button_pressed"]
+[connection signal="pressed" from="FillPoolButton" to="." method="_on_fill_pool_button_pressed"]
