@@ -8,7 +8,6 @@ var coral_source_id: int
 
 var coral_layer: TileMapLayer = null
 var water_layer: TileMapLayer = null
-var terrain_layer: TileMapLayer = null
 # Dictionaries zur Speicherung der Korallen und Partikel
 var cells = {}  # Dictionary: Vector2i -> Coral
 var particles = {}  # Dictionary: Vector2i -> 1 (existierende Partikel)
@@ -28,15 +27,11 @@ func getParticles():
 func setParticleSource(array: Array):
 	particleSource = array
 
-# Initialize terrain and coral layers
 func set_water_layer(layer: TileMapLayer):
 	water_layer = layer
 
 func set_coral_layer(layer: TileMapLayer):
 	coral_layer = layer
-
-func set_terrain_layer(layer: TileMapLayer):
-	terrain_layer = layer
 	
 func is_valid_position(pos: Vector2i) -> bool:
 	# Calculate the scale ratio between water and coral layers
@@ -49,13 +44,9 @@ func is_valid_position(pos: Vector2i) -> bool:
 
 	# Check if the position is inside the water area
 	var water_id = water_layer.get_cell_source_id(scaled_pos_i)
-	print("Tile Position in Water Layer:", scaled_pos_i)
-	print("Water ID:", water_layer.get_cell_source_id(scaled_pos_i))
 	
 	var used_rect = water_layer.get_used_rect()
-	if not used_rect.has_point(scaled_pos_i):
-		print("Position OUTSIDE valid water area:", scaled_pos_i)
-		
+
 	return (
 		water_id != -1  # Check if it's water
 	)

@@ -64,15 +64,13 @@ func _ready():
 	# Set up sources and drains
 	water_simulation.setup_sources(source_positions, source_water_rate, source_salt_concentration)
 	water_simulation.setup_drains(drain_positions, drain_rate)
-	#water_simulation.fill_pool()
+	water_simulation.fill_pool(0)
 	
 	# Initial rendering update
 	coral_simulation = coral_simulation_script.new()
-#	coral_simulation.set_terrain_layer(terrain_layer)
 	coral_simulation.set_coral_layer(coral_layer)
 	coral_simulation.set_water_layer(water_layer)
 	coral_simulation.setParticleSource(particle_source_positions)
-	coral_simulation.set_terrain_layer(water_layer)
 	coral_simulation.setCells(findCoralCells())
 	coral_simulation.spawn_particles()
 	
@@ -148,23 +146,14 @@ func update_sources():
 	for source in sources:
 		source.salt_concentration = Salt_slider.value
 
-
-
 func _on_fill_pool_button_pressed() -> void:
 	var salt_value = FillSalt_slider.value  
 	water_simulation.fill_pool(salt_value)  
 	update_layers()
 
-
 func _on_clear_pool_button_pressed() -> void:
 	water_simulation.clear_pool()
-	
-
 
 func _on_coral_reset_button_pressed() -> void:
 	coral_simulation.reset()
 	update_layers()
-
-
-func _on_coral_start_pressed() -> void:
-	coral_simulation.spawn_particles()

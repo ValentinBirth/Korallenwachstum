@@ -12,6 +12,15 @@ position = Vector2(583, 280)
 script = ExtResource("1_onj4q")
 water_simulation_script = ExtResource("2_4irs0")
 coral_simulation_script = ExtResource("5_b8hr8")
+debug_mode = null
+water_amount = null
+salt_amount = null
+source_water_rate = null
+source_salt_concentration = null
+drain_rate = null
+source_positions = null
+particle_source_positions = null
+drain_positions = null
 
 [node name="layer_holder" type="Node2D" parent="."]
 position = Vector2(-581, -280)
