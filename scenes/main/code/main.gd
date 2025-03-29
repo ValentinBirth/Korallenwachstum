@@ -35,6 +35,10 @@ var time_since_last_step: float = 0.05
 	Vector2i(14,4)
 ]
 
+@export var particle_source_positions: Array[Vector2i] = [
+	Vector2i(-110,63)
+]
+
 @export var drain_positions: Array[Vector2i] = [
 	Vector2i(-64,1),
 	Vector2i(-64,2),
@@ -64,6 +68,11 @@ func _ready():
 	
 	# Initial rendering update
 	coral_simulation = coral_simulation_script.new()
+#	coral_simulation.set_terrain_layer(terrain_layer)
+	coral_simulation.set_coral_layer(coral_layer)
+	coral_simulation.set_water_layer(water_layer)
+	coral_simulation.setParticleSource(particle_source_positions)
+	coral_simulation.set_terrain_layer(water_layer)
 	coral_simulation.setCells(findCoralCells())
 	coral_simulation.spawn_particles()
 	
@@ -104,10 +113,12 @@ func update_layers():
 	var particles = coral_simulation.getParticles()
 	
 	for coral in corals.keys():
-		coral_layer.set_cell(coral,0,Vector2i(14,9))
+		coral_layer.set_cell(coral,0,Vector2i(21,5))
 		
 	for particle in particles.keys():
-		coral_layer.set_cell(particle,0,Vector2i(3,16))
+		#coral_layer.set_cell(particle,0,Vector2i(3,16))
+		coral_layer.set_cell(particle,0,Vector2i(11,11))
+
 
 func get_tile_id_for_value(water_cell: WaterSimulation.WaterCell) -> Vector2i:
 	# Calculate visual representation based on water and salt values
