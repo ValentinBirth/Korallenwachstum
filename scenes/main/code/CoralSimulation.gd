@@ -34,6 +34,13 @@ func set_coral_layer(layer: TileMapLayer):
 func set_terrain_layer(layer: TileMapLayer):
 	terrain_layer = layer
 	
+func is_solid(pos: Vector2i) -> bool:
+	if water_layer == null:
+		return false
+	var world_pos = coral_layer.to_global(pos)
+	var terrain_pos = water_layer.to_local(world_pos)
+	return water_layer.get_cell_source_id(terrain_pos) != -1  # Check if a tile exists
+	
 func is_valid_position(pos: Vector2i) -> bool:
 	# Calculate the scale ratio between water and coral layers
 	var scale_ratio = coral_layer.scale / water_layer.scale  
@@ -42,17 +49,15 @@ func is_valid_position(pos: Vector2i) -> bool:
 	#var scaled_pos = pos * Vector2i(scale_ratio)
 	var scaled_pos = (Vector2(pos) * scale_ratio).floor()
 	var scaled_pos_i = Vector2i(scaled_pos)
-	
-	var tile_pos = water_layer.local_to_map(scaled_pos_i)
 
 	# Check if the position is inside the water area
-	var water_id = water_layer.get_cell_source_id(tile_pos)
-	print("Tile Position in Water Layer:", tile_pos)
-	print("Water ID:", water_layer.get_cell_source_id(tile_pos))
+	var water_id = water_layer.get_cell_source_id(scaled_pos_i)
+	print("Tile Position in Water Layer:", scaled_pos_i)
+	print("Water ID:", water_layer.get_cell_source_id(scaled_pos_i))
 	
 	var used_rect = water_layer.get_used_rect()
-	if not used_rect.has_point(tile_pos):
-		print("Position OUTSIDE valid water area:", tile_pos)
+	if not used_rect.has_point(scaled_pos_i):
+		print("Position OUTSIDE valid water area:", scaled_pos_i)
 		
 	return (
 		water_id != -1  # Check if it's water
@@ -63,8 +68,8 @@ func spawn_particles():
 	print("Spawning particles...")
 	for i in range(particle_count):
 		var particle_pos = Vector2i(
-			randi_range(-45, 120),
-			randi_range(85, 99)
+			randi_range(-226, -8),
+			randi_range(40, 99)
 		)
 		#print("Particle created at: ", particle_pos)  # Ausgabe zur Überprüfung der Position
 		

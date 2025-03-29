@@ -64,7 +64,6 @@ func _ready():
 	
 	# Initial rendering update
 	coral_simulation = coral_simulation_script.new()
-	coral_layer.position = Vector2(-700, -55)
 #	coral_simulation.set_terrain_layer(terrain_layer)
 	coral_simulation.set_coral_layer(coral_layer)
 	coral_simulation.set_water_layer(water_layer)
