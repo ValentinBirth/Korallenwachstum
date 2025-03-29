@@ -35,6 +35,10 @@ var time_since_last_step: float = 0.05
 	Vector2i(14,4)
 ]
 
+@export var particle_source_positions: Array[Vector2i] = [
+	Vector2i(-110,63)
+]
+
 @export var drain_positions: Array[Vector2i] = [
 	Vector2i(-64,1),
 	Vector2i(-64,2),
@@ -67,6 +71,7 @@ func _ready():
 #	coral_simulation.set_terrain_layer(terrain_layer)
 	coral_simulation.set_coral_layer(coral_layer)
 	coral_simulation.set_water_layer(water_layer)
+	coral_simulation.setParticleSource(particle_source_positions)
 	coral_simulation.set_terrain_layer(water_layer)
 	coral_simulation.setCells(findCoralCells())
 	coral_simulation.spawn_particles()

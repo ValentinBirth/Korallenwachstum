@@ -2,8 +2,7 @@ extends Object
 
 class_name CoralSimulation
 
-@export var particle_count: int = 100
-@export var growth_rate: float = 0.05
+@export var particle_count: int = 1000
 
 var coral_source_id: int
 
@@ -13,6 +12,7 @@ var terrain_layer: TileMapLayer = null
 # Dictionaries zur Speicherung der Korallen und Partikel
 var cells = {}  # Dictionary: Vector2i -> Coral
 var particles = {}  # Dictionary: Vector2i -> 1 (existierende Partikel)
+var particleSource = []
 
 # Setup initial coral tiles
 func setCells(new_cells):
@@ -23,6 +23,9 @@ func getCells():
 
 func getParticles():
 	return particles
+	
+func setParticleSource(array: Array):
+	particleSource = array
 
 # Initialize terrain and coral layers
 func set_water_layer(layer: TileMapLayer):
@@ -33,13 +36,6 @@ func set_coral_layer(layer: TileMapLayer):
 
 func set_terrain_layer(layer: TileMapLayer):
 	terrain_layer = layer
-	
-func is_solid(pos: Vector2i) -> bool:
-	if water_layer == null:
-		return false
-	var world_pos = coral_layer.to_global(pos)
-	var terrain_pos = water_layer.to_local(world_pos)
-	return water_layer.get_cell_source_id(terrain_pos) != -1  # Check if a tile exists
 	
 func is_valid_position(pos: Vector2i) -> bool:
 	# Calculate the scale ratio between water and coral layers
@@ -65,15 +61,9 @@ func is_valid_position(pos: Vector2i) -> bool:
 
 # Spawn wandering particles randomly around coral
 func spawn_particles():
-	print("Spawning particles...")
-	for i in range(particle_count):
-		var particle_pos = Vector2i(
-			randi_range(-226, -8),
-			randi_range(40, 99)
-		)
-		#print("Particle created at: ", particle_pos)  # Ausgabe zur Überprüfung der Position
-		
-		particles[particle_pos] = 1
+	for source_pos in particleSource:
+		if particleSource.size() < particle_count and !particles.has(source_pos):
+			particles[source_pos] = 1
 
 func canMove(pos: Vector2i):
 	#return pos.x >= -45 and pos.x <= 120 and pos.y >= 85 and pos.y <= 100 and !particles.has(pos)
@@ -85,6 +75,8 @@ func canGrow(_pos: Vector2i):
 # Move particles randomly (with radial growth and branching)
 func move_particles():
 	var new_particles = {}
+	
+	spawn_particles()
 
 	for particle_pos in particles.keys():
 		var stuck = false  # Flag to track if particle sticks to coral
