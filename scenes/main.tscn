@@ -73,5 +73,21 @@ offset_right = -1421.0
 offset_bottom = -293.0
 text = "fill Pool"
 
+[node name="CoralResetButton" type="Button" parent="."]
+offset_left = -1301.0
+offset_top = -348.0
+offset_right = -1205.0
+offset_bottom = -294.0
+text = "Reset Coral"
+
+[node name="CoralStart" type="Button" parent="."]
+offset_left = -1199.0
+offset_top = -348.0
+offset_right = -1049.0
+offset_bottom = -293.0
+text = "Start Coral growth"
+
 [connection signal="pressed" from="ClearPoolButton" to="." method="_on_clear_pool_button_pressed"]
 [connection signal="pressed" from="FillPoolButton" to="." method="_on_fill_pool_button_pressed"]
+[connection signal="pressed" from="CoralResetButton" to="." method="_on_coral_reset_button_pressed"]
+[connection signal="pressed" from="CoralStart" to="." method="_on_coral_start_pressed"]

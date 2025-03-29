@@ -159,3 +159,12 @@ func _on_fill_pool_button_pressed() -> void:
 func _on_clear_pool_button_pressed() -> void:
 	water_simulation.clear_pool()
 	
+
+
+func _on_coral_reset_button_pressed() -> void:
+	coral_simulation.reset()
+	update_layers()
+
+
+func _on_coral_start_pressed() -> void:
+	coral_simulation.spawn_particles()

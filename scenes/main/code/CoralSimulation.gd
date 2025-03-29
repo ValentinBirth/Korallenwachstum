@@ -14,10 +14,11 @@ var cells = {}  # Dictionary: Vector2i -> Coral
 var particles = {}  # Dictionary: Vector2i -> 1 (existierende Partikel)
 var particleSource = []
 
+var original_cells = {} # Speichert die Startkorallen dauerhaft
 # Setup initial coral tiles
 func setCells(new_cells):
 	cells = new_cells
-
+	original_cells = new_cells.duplicate()
 func getCells():
 	return cells
 
@@ -121,3 +122,11 @@ func get_random_direction() -> Vector2i:
 		Vector2i(-1, 1), Vector2i(-1, -1)
 	]
 	return directions[randi_range(0, directions.size() - 1)]
+func reset():
+	print("Resetting coral simulation...")
+
+	particles.clear()
+
+	# originale Korallen wiederherstellen
+	cells = original_cells.duplicate()
+	
