@@ -7,6 +7,9 @@ class_name CoralSimulation
 
 var coral_source_id: int
 
+var coral_layer: TileMapLayer = null
+var water_layer: TileMapLayer = null
+var terrain_layer: TileMapLayer = null
 # Dictionaries zur Speicherung der Korallen und Partikel
 var cells = {}  # Dictionary: Vector2i -> Coral
 var particles = {}  # Dictionary: Vector2i -> 1 (existierende Partikel)
@@ -21,22 +24,57 @@ func getCells():
 func getParticles():
 	return particles
 
+# Initialize terrain and coral layers
+func set_water_layer(layer: TileMapLayer):
+	water_layer = layer
+
+func set_coral_layer(layer: TileMapLayer):
+	coral_layer = layer
+
+func set_terrain_layer(layer: TileMapLayer):
+	terrain_layer = layer
+	
+func is_valid_position(pos: Vector2i) -> bool:
+	# Calculate the scale ratio between water and coral layers
+	var scale_ratio = coral_layer.scale / water_layer.scale  
+	
+	# Adjust the position to account for scale differences
+	#var scaled_pos = pos * Vector2i(scale_ratio)
+	var scaled_pos = (Vector2(pos) * scale_ratio).floor()
+	var scaled_pos_i = Vector2i(scaled_pos)
+	
+	var tile_pos = water_layer.local_to_map(scaled_pos_i)
+
+	# Check if the position is inside the water area
+	var water_id = water_layer.get_cell_source_id(tile_pos)
+	print("Tile Position in Water Layer:", tile_pos)
+	print("Water ID:", water_layer.get_cell_source_id(tile_pos))
+	
+	var used_rect = water_layer.get_used_rect()
+	if not used_rect.has_point(tile_pos):
+		print("Position OUTSIDE valid water area:", tile_pos)
+		
+	return (
+		water_id != -1  # Check if it's water
+	)
+
 # Spawn wandering particles randomly around coral
 func spawn_particles():
 	print("Spawning particles...")
 	for i in range(particle_count):
 		var particle_pos = Vector2i(
-			randi_range(5, 90),  # X-Koordinate zwischen 5 und 90
-			randi_range(107, 120) # Y-Koordinate knapp über den Korallen
+			randi_range(-45, 120),
+			randi_range(85, 99)
 		)
-		print("Particle created at: ", particle_pos)  # Ausgabe zur Überprüfung der Position
-		particles[particle_pos] = 1
+		#print("Particle created at: ", particle_pos)  # Ausgabe zur Überprüfung der Position
 		
+		particles[particle_pos] = 1
+
 func canMove(pos: Vector2i):
-	return pos.x >= 5 and pos.x <= 90 and pos.y >= 107 and pos.y <= 120 and !particles.has(pos)
-	
-# Calculates Probability of growth at a position
-func canGrow(pos: Vector2i):
+	#return pos.x >= -45 and pos.x <= 120 and pos.y >= 85 and pos.y <= 100 and !particles.has(pos)
+	return is_valid_position(pos) and !particles.has(pos)
+## Calculates Probability of growth at a position
+func canGrow(_pos: Vector2i):
 	return true
 	
 # Move particles randomly (with radial growth and branching)
@@ -45,7 +83,7 @@ func move_particles():
 
 	for particle_pos in particles.keys():
 		var stuck = false  # Flag to track if particle sticks to coral
-
+		
 		# Try sticking to coral first
 		for offset in get_shuffled_directions():
 			var neighbor_pos = particle_pos + offset

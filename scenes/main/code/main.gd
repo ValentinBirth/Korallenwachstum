@@ -64,11 +64,11 @@ func _ready():
 	
 	# Initial rendering update
 	coral_simulation = coral_simulation_script.new()
-
-	coral_simulation.set_terrain_layer(terrain_layer)
+	coral_layer.position = Vector2(-700, -55)
+#	coral_simulation.set_terrain_layer(terrain_layer)
 	coral_simulation.set_coral_layer(coral_layer)
 	coral_simulation.set_water_layer(water_layer)
-
+	coral_simulation.set_terrain_layer(water_layer)
 	coral_simulation.setCells(findCoralCells())
 	coral_simulation.spawn_particles()
 	
@@ -112,7 +112,8 @@ func update_layers():
 		coral_layer.set_cell(coral,0,Vector2i(21,5))
 		
 	for particle in particles.keys():
-		coral_layer.set_cell(particle,0,Vector2i(3,16))
+		#coral_layer.set_cell(particle,0,Vector2i(3,16))
+		coral_layer.set_cell(particle,0,Vector2i(11,11))
 
 
 func get_tile_id_for_value(water_cell: WaterSimulation.WaterCell) -> Vector2i:
